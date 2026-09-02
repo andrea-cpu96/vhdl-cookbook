@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://andrea-cpu96.github.io/vhdl-cookbook/sitemap.xml

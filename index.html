@@ -73,7 +73,21 @@ pre {
     border-radius: 8px;
     overflow-x: auto;
     border: 1px solid #ddd;
-    min-height: 300px;
+}
+
+.template-block {
+    margin-bottom: 30px;
+}
+
+.template-block h2 {
+    margin-bottom: 4px;
+    color: #1e293b;
+}
+
+.template-block .desc {
+    margin: 0 0 10px;
+    color: #64748b;
+    font-size: 14px;
 }
 
 /* COPY BUTTON */
@@ -167,11 +181,7 @@ button.copied {
 
     <h1 id="title">VHDL Project Template</h1>
 
-    <button id="copyBtn" onclick="copyTemplate()">
-        📋 Copy Template
-    </button>
-
-    <pre id="templateText"></pre>
+    <div id="templateContainer"></div>
 
 </div>
 
@@ -200,7 +210,11 @@ begin
 
 end architecture rtl;`,
 
-register: `process(clk)
+register: [
+    {
+        title: "D Register — Synchronous Reset",
+        desc: "Basic D-type register that clears to zero on a synchronous reset.",
+        code: `process(clk)
 begin
     if rising_edge(clk) then
         if rst = '1' then
@@ -210,6 +224,76 @@ begin
         end if;
     end if;
 end process;`
+    },
+    {
+        title: "D Register with Enable — Synchronous Reset",
+        desc: "Loads new data only while the enable is high; reset is synchronous.",
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        elsif en = '1' then
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register — Asynchronous Reset",
+        desc: "Clears immediately when reset asserts, independent of the clock.",
+        code: `process(clk, rst)
+begin
+    if rst = '1' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register with Enable — Asynchronous Reset",
+        desc: "Asynchronous reset combined with a clock enable for the data load.",
+        code: `process(clk, rst)
+begin
+    if rst = '1' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        if en = '1' then
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register — Synchronous Set",
+        desc: "Presets all bits to '1' on a synchronous set instead of clearing.",
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        if set = '1' then
+            q <= (others => '1');
+        else
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "Single-Bit D Flip-Flop",
+        desc: "Scalar one-bit register using '0' instead of (others => '0').",
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= '0';
+        else
+            q <= d;
+        end if;
+    end if;
+end process;`
+    }
+]
 
 };
 
@@ -218,8 +302,23 @@ function loadTemplate(name, element)
     document.getElementById("title").innerText =
         element.innerText.trim();
 
-    document.getElementById("templateText").textContent =
-        templates[name];
+    const container =
+        document.getElementById("templateContainer");
+
+    container.innerHTML = "";
+
+    const entry = templates[name];
+
+    if (Array.isArray(entry))
+    {
+        entry.forEach(item =>
+            container.appendChild(
+                createBlock(item.title, item.desc, item.code)));
+    }
+    else
+    {
+        container.appendChild(createBlock(null, null, entry));
+    }
 
     document.querySelectorAll(".template-item")
         .forEach(item =>
@@ -228,15 +327,45 @@ function loadTemplate(name, element)
     element.classList.add("active");
 }
 
-function copyTemplate()
+function createBlock(title, desc, code)
+{
+    const block = document.createElement("div");
+    block.className = "template-block";
+
+    if (title)
+    {
+        const heading = document.createElement("h2");
+        heading.textContent = title;
+        block.appendChild(heading);
+    }
+
+    if (desc)
+    {
+        const p = document.createElement("p");
+        p.className = "desc";
+        p.textContent = desc;
+        block.appendChild(p);
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "copyBtn";
+    btn.innerHTML = "📋 Copy";
+    btn.onclick = () => copyBlock(btn);
+    block.appendChild(btn);
+
+    const pre = document.createElement("pre");
+    pre.textContent = code;
+    block.appendChild(pre);
+
+    return block;
+}
+
+function copyBlock(btn)
 {
     const text =
-        document.getElementById("templateText").textContent;
+        btn.parentElement.querySelector("pre").textContent;
 
     navigator.clipboard.writeText(text);
-
-    const btn =
-        document.getElementById("copyBtn");
 
     const toast =
         document.getElementById("toast");
@@ -249,7 +378,7 @@ function copyTemplate()
     setTimeout(() =>
     {
         btn.classList.remove("copied");
-        btn.innerHTML = "📋 Copy Template";
+        btn.innerHTML = "📋 Copy";
 
         toast.classList.remove("show");
     }, 2000);

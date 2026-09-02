@@ -90,6 +90,42 @@ pre {
     font-size: 14px;
 }
 
+/* SCHEMATIC DIAGRAM */
+
+.block-body {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.code-col {
+    flex: 1 1 340px;
+    min-width: 0;
+}
+
+.diagram {
+    flex: 0 0 auto;
+    background: #f8fafc;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 14px;
+    max-width: 320px;
+}
+
+.diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.diagram-cap {
+    margin-top: 6px;
+    text-align: center;
+    color: #64748b;
+    font-size: 12px;
+}
+
 /* COPY BUTTON */
 
 button {
@@ -214,6 +250,7 @@ register: [
     {
         title: "D Register — Synchronous Reset",
         desc: "Basic D-type register that clears to zero on a synchronous reset.",
+        diagram: { reset: "sync" },
         code: `process(clk)
 begin
     if rising_edge(clk) then
@@ -228,6 +265,7 @@ end process;`
     {
         title: "D Register with Enable — Synchronous Reset",
         desc: "Loads new data only while the enable is high; reset is synchronous.",
+        diagram: { enable: true, reset: "sync" },
         code: `process(clk)
 begin
     if rising_edge(clk) then
@@ -242,6 +280,7 @@ end process;`
     {
         title: "D Register — Asynchronous Reset",
         desc: "Clears immediately when reset asserts, independent of the clock.",
+        diagram: { reset: "async" },
         code: `process(clk, rst)
 begin
     if rst = '1' then
@@ -254,6 +293,7 @@ end process;`
     {
         title: "D Register with Enable — Asynchronous Reset",
         desc: "Asynchronous reset combined with a clock enable for the data load.",
+        diagram: { enable: true, reset: "async" },
         code: `process(clk, rst)
 begin
     if rst = '1' then
@@ -268,6 +308,7 @@ end process;`
     {
         title: "D Register — Synchronous Set",
         desc: "Presets all bits to '1' on a synchronous set instead of clearing.",
+        diagram: { set: "sync" },
         code: `process(clk)
 begin
     if rising_edge(clk) then
@@ -282,6 +323,7 @@ end process;`
     {
         title: "Single-Bit D Flip-Flop",
         desc: "Scalar one-bit register using '0' instead of (others => '0').",
+        diagram: { reset: "sync", bit: true },
         code: `process(clk)
 begin
     if rising_edge(clk) then
@@ -313,11 +355,11 @@ function loadTemplate(name, element)
     {
         entry.forEach(item =>
             container.appendChild(
-                createBlock(item.title, item.desc, item.code)));
+                createBlock(item.title, item.desc, item.code, item.diagram)));
     }
     else
     {
-        container.appendChild(createBlock(null, null, entry));
+        container.appendChild(createBlock(null, null, entry, null));
     }
 
     document.querySelectorAll(".template-item")
@@ -327,7 +369,89 @@ function loadTemplate(name, element)
     element.classList.add("active");
 }
 
-function createBlock(title, desc, code)
+function createDiagram(d)
+{
+    const wire = "#1e293b";
+    const accent = "#2563eb";
+    const fill = "#eff6ff";
+    const label = "#1e293b";
+    const note = "#64748b";
+
+    const svg = [];
+
+    // Register body
+    svg.push(`<rect x="110" y="40" width="100" height="115" rx="6" `
+        + `fill="${fill}" stroke="${accent}" stroke-width="2"/>`);
+
+    // D data input
+    svg.push(`<line x1="55" y1="68" x2="110" y2="68" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<text x="49" y="72" text-anchor="end" font-size="13" `
+        + `fill="${label}" font-family="Arial">D</text>`);
+
+    // EN enable input (optional)
+    if (d.enable)
+    {
+        svg.push(`<line x1="55" y1="98" x2="110" y2="98" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="49" y="102" text-anchor="end" font-size="13" `
+            + `fill="${label}" font-family="Arial">EN</text>`);
+    }
+
+    // CLK input with edge-triggered notch
+    svg.push(`<line x1="55" y1="130" x2="110" y2="130" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<polyline points="110,123 122,130 110,137" fill="none" `
+        + `stroke="${accent}" stroke-width="2"/>`);
+    svg.push(`<text x="49" y="134" text-anchor="end" font-size="13" `
+        + `fill="${label}" font-family="Arial">CLK</text>`);
+
+    // Q output
+    svg.push(`<line x1="210" y1="68" x2="265" y2="68" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<text x="271" y="72" text-anchor="start" font-size="13" `
+        + `fill="${label}" font-family="Arial">Q</text>`);
+
+    // Bus tick marks for multi-bit data/output
+    if (!d.bit)
+    {
+        svg.push(`<line x1="78" y1="62" x2="86" y2="74" stroke="${wire}" stroke-width="1.5"/>`);
+        svg.push(`<line x1="232" y1="62" x2="240" y2="74" stroke="${wire}" stroke-width="1.5"/>`);
+    }
+
+    // SET input on top (optional)
+    if (d.set)
+    {
+        svg.push(`<line x1="160" y1="15" x2="160" y2="40" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="160" y="11" text-anchor="middle" font-size="12" `
+            + `fill="${label}" font-family="Arial">SET</text>`);
+        svg.push(`<text x="172" y="32" text-anchor="start" font-size="9" `
+            + `fill="${note}" font-family="Arial">${d.set}</text>`);
+    }
+
+    // RST input on bottom (optional)
+    if (d.reset)
+    {
+        svg.push(`<line x1="160" y1="155" x2="160" y2="180" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="160" y="193" text-anchor="middle" font-size="12" `
+            + `fill="${label}" font-family="Arial">RST</text>`);
+        svg.push(`<text x="172" y="170" text-anchor="start" font-size="9" `
+            + `fill="${note}" font-family="Arial">${d.reset}</text>`);
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "diagram";
+    wrap.innerHTML =
+        `<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" `
+        + `role="img" aria-label="Register schematic diagram">`
+        + svg.join("")
+        + `</svg>`;
+
+    const cap = document.createElement("div");
+    cap.className = "diagram-cap";
+    cap.textContent = d.bit ? "1-bit D flip-flop" : "N-bit register";
+    wrap.appendChild(cap);
+
+    return wrap;
+}
+
+function createBlock(title, desc, code, diagram)
 {
     const block = document.createElement("div");
     block.className = "template-block";
@@ -347,15 +471,29 @@ function createBlock(title, desc, code)
         block.appendChild(p);
     }
 
+    const body = document.createElement("div");
+    body.className = "block-body";
+
+    if (diagram)
+    {
+        body.appendChild(createDiagram(diagram));
+    }
+
+    const codeCol = document.createElement("div");
+    codeCol.className = "code-col";
+
     const btn = document.createElement("button");
     btn.className = "copyBtn";
     btn.innerHTML = "📋 Copy";
     btn.onclick = () => copyBlock(btn);
-    block.appendChild(btn);
+    codeCol.appendChild(btn);
 
     const pre = document.createElement("pre");
     pre.textContent = code;
-    block.appendChild(pre);
+    codeCol.appendChild(pre);
+
+    body.appendChild(codeCol);
+    block.appendChild(body);
 
     return block;
 }

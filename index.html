@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>VHDL Template Browser</title>
+
+<style>
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 280px;
+    background: #1e293b;
+    color: white;
+    padding: 15px;
+    box-sizing: border-box;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+}
+
+.sidebar input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: none;
+}
+
+.template-item {
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    transition: background 0.2s;
+}
+
+.template-item:hover {
+    background: #334155;
+}
+
+.template-item.active {
+    background: #2563eb;
+}
+
+.content {
+    margin-left: 280px;
+    padding: 20px;
+    flex-grow: 1;
+}
+
+pre {
+    background: #f4f4f4;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    min-height: 300px;
+}
+
+/* COPY BUTTON */
+
+button {
+    padding: 10px 18px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    margin-bottom: 15px;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+button:active {
+    transform: scale(0.96);
+}
+
+button.copied {
+    background: #16a34a;
+}
+
+/* TOAST MESSAGE */
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+
+    background: #16a34a;
+    color: white;
+
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.25);
+
+    opacity: 0;
+    transform: translateY(20px);
+
+    transition: all 0.3s ease;
+
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+
+    <h2>VHDL Blocks</h2>
+
+    <input
+        type="text"
+        id="search"
+        placeholder="Search template..."
+        onkeyup="filterTemplates()">
+
+    <div id="templates">
+
+        <div class="template-item active"
+             onclick="loadTemplate('project',this)">
+            VHDL Project Template
+        </div>
+
+        <div class="template-item"
+             onclick="loadTemplate('register',this)">
+            Register
+        </div>
+
+    </div>
+
+</div>
+
+<div class="content">
+
+    <h1 id="title">VHDL Project Template</h1>
+
+    <button id="copyBtn" onclick="copyTemplate()">
+        📋 Copy Template
+    </button>
+
+    <pre id="templateText"></pre>
+
+</div>
+
+<div id="toast" class="toast">
+    ✅ Template copied to clipboard
+</div>
+
+<script>
+
+const templates = {
+
+project: `library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity my_entity is
+    port (
+        clk : in std_logic;
+        rst : in std_logic
+    );
+end entity my_entity;
+
+architecture rtl of my_entity is
+
+begin
+
+end architecture rtl;`,
+
+register: `process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        else
+            q <= d;
+        end if;
+    end if;
+end process;`
+
+};
+
+function loadTemplate(name, element)
+{
+    document.getElementById("title").innerText =
+        element.innerText.trim();
+
+    document.getElementById("templateText").textContent =
+        templates[name];
+
+    document.querySelectorAll(".template-item")
+        .forEach(item =>
+            item.classList.remove("active"));
+
+    element.classList.add("active");
+}
+
+function copyTemplate()
+{
+    const text =
+        document.getElementById("templateText").textContent;
+
+    navigator.clipboard.writeText(text);
+
+    const btn =
+        document.getElementById("copyBtn");
+
+    const toast =
+        document.getElementById("toast");
+
+    btn.classList.add("copied");
+    btn.innerHTML = "✅ Copied!";
+
+    toast.classList.add("show");
+
+    setTimeout(() =>
+    {
+        btn.classList.remove("copied");
+        btn.innerHTML = "📋 Copy Template";
+
+        toast.classList.remove("show");
+    }, 2000);
+}
+
+function filterTemplates()
+{
+    const value =
+        document.getElementById("search")
+        .value
+        .toLowerCase();
+
+    document.querySelectorAll(".template-item")
+        .forEach(item =>
+        {
+            item.style.display =
+                item.innerText.toLowerCase()
+                .includes(value)
+                ? "block"
+                : "none";
+        });
+}
+
+loadTemplate(
+    "project",
+    document.querySelector(".template-item")
+);
+
+</script>
+
+</body>
+</html>

@@ -123,6 +123,7 @@ body {
 
 pre {
     background: #f4f4f4;
+    margin: 0;
     padding: 15px;
     border-radius: 8px;
     overflow-x: auto;
@@ -154,8 +155,19 @@ pre {
 }
 
 .code-col {
+    position: relative;
     flex: 1 1 340px;
     min-width: 0;
+}
+
+.copyBtn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    margin-bottom: 0;
+    padding: 6px 12px;
+    font-size: 13px;
 }
 
 .diagram {
@@ -555,12 +567,12 @@ function buildSidebar()
     container.appendChild(projectItem);
 
     const header = document.createElement("div");
-    header.className = "template-group-header";
+    header.className = "template-group-header collapsed";
     header.innerHTML = `<span>Registers</span><span class="caret">▾</span>`;
     container.appendChild(header);
 
     const sub = document.createElement("div");
-    sub.className = "template-subitems";
+    sub.className = "template-subitems collapsed";
     container.appendChild(sub);
 
     header.onclick = () =>

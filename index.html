@@ -61,6 +61,60 @@ body {
     background: #2563eb;
 }
 
+.template-group-header {
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s;
+}
+
+.template-group-header:hover {
+    background: #334155;
+}
+
+.template-group-header .caret {
+    font-size: 11px;
+    transition: transform 0.2s;
+}
+
+.template-group-header.collapsed .caret {
+    transform: rotate(-90deg);
+}
+
+.template-subitems {
+    margin: 0 0 8px 10px;
+    padding-left: 8px;
+    border-left: 2px solid #334155;
+}
+
+.template-subitems.collapsed {
+    display: none;
+}
+
+.template-subitem {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-bottom: 3px;
+    font-size: 14px;
+    color: #cbd5e1;
+    transition: background 0.2s;
+}
+
+.template-subitem:hover {
+    background: #334155;
+}
+
+.template-subitem.active {
+    background: #2563eb;
+    color: white;
+}
+
 .content {
     margin-left: 280px;
     padding: 20px;
@@ -197,19 +251,7 @@ button.copied {
         placeholder="Search template..."
         onkeyup="filterTemplates()">
 
-    <div id="templates">
-
-        <div class="template-item active"
-             onclick="loadTemplate('project',this)">
-            VHDL Project Template
-        </div>
-
-        <div class="template-item"
-             onclick="loadTemplate('register',this)">
-            Register
-        </div>
-
-    </div>
+    <div id="templates"></div>
 
 </div>
 
@@ -248,7 +290,20 @@ end architecture rtl;`,
 
 register: [
     {
+        title: "D Register",
+        group: "D Registers",
+        desc: "Plain D-type register: captures data on every rising clock edge, with no reset.",
+        diagram: {},
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
         title: "D Register — Synchronous Reset",
+        group: "D Registers",
         desc: "Basic D-type register that clears to zero on a synchronous reset.",
         diagram: { reset: "sync" },
         code: `process(clk)
@@ -263,7 +318,22 @@ begin
 end process;`
     },
     {
+        title: "D Register — Asynchronous Reset",
+        group: "D Registers",
+        desc: "Clears immediately when reset asserts, independent of the clock.",
+        diagram: { reset: "async" },
+        code: `process(clk, rst)
+begin
+    if rst = '1' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
         title: "D Register with Enable — Synchronous Reset",
+        group: "D Registers",
         desc: "Loads new data only while the enable is high; reset is synchronous.",
         diagram: { enable: true, reset: "sync" },
         code: `process(clk)
@@ -278,20 +348,8 @@ begin
 end process;`
     },
     {
-        title: "D Register — Asynchronous Reset",
-        desc: "Clears immediately when reset asserts, independent of the clock.",
-        diagram: { reset: "async" },
-        code: `process(clk, rst)
-begin
-    if rst = '1' then
-        q <= (others => '0');
-    elsif rising_edge(clk) then
-        q <= d;
-    end if;
-end process;`
-    },
-    {
         title: "D Register with Enable — Asynchronous Reset",
+        group: "D Registers",
         desc: "Asynchronous reset combined with a clock enable for the data load.",
         diagram: { enable: true, reset: "async" },
         code: `process(clk, rst)
@@ -306,7 +364,54 @@ begin
 end process;`
     },
     {
+        title: "Single-Bit D Flip-Flop",
+        group: "D Registers",
+        desc: "Scalar one-bit register using '0' instead of (others => '0').",
+        diagram: { reset: "sync", bit: true, caption: "1-bit D flip-flop" },
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= '0';
+        else
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register — Active-Low Asynchronous Reset",
+        group: "D Registers",
+        desc: "Industry-standard convention: reset asserts when rst_n is driven low.",
+        diagram: { reset: { note: "async", low: true } },
+        code: `process(clk, rst_n)
+begin
+    if rst_n = '0' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register with Initial Value",
+        group: "D Registers",
+        desc: "No reset — powers up to a value defined in the signal declaration (FPGA).",
+        diagram: {},
+        code: `-- In the architecture declarative part:
+signal q : std_logic_vector(7 downto 0) := (others => '0');
+
+-- In the architecture body:
+process(clk)
+begin
+    if rising_edge(clk) then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
         title: "D Register — Synchronous Set",
+        group: "Set / Preset",
         desc: "Presets all bits to '1' on a synchronous set instead of clearing.",
         diagram: { set: "sync" },
         code: `process(clk)
@@ -321,16 +426,115 @@ begin
 end process;`
     },
     {
-        title: "Single-Bit D Flip-Flop",
-        desc: "Scalar one-bit register using '0' instead of (others => '0').",
-        diagram: { reset: "sync", bit: true },
+        title: "D Register — Asynchronous Set (Preset)",
+        group: "Set / Preset",
+        desc: "Presets all bits to '1' immediately when set asserts, independent of the clock.",
+        diagram: { set: "async" },
+        code: `process(clk, set)
+begin
+    if set = '1' then
+        q <= (others => '1');
+    elsif rising_edge(clk) then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register — Async Reset + Sync Set",
+        group: "Set / Preset",
+        desc: "Asynchronous reset takes priority; a synchronous set preloads all ones.",
+        diagram: { set: "sync", reset: "async" },
+        code: `process(clk, rst)
+begin
+    if rst = '1' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        if set = '1' then
+            q <= (others => '1');
+        else
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "D Register — Falling-Edge Triggered",
+        group: "D Registers",
+        desc: "Samples data on the falling clock edge instead of the rising edge.",
+        diagram: { reset: "sync", clk: "falling" },
+        code: `process(clk)
+begin
+    if falling_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        else
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "Transparent Latch",
+        group: "Latches",
+        desc: "Level-sensitive: the output follows data while enable is high (not edge-triggered).",
+        diagram: { clk: "level", clkLabel: "EN", caption: "N-bit latch" },
+        code: `process(en, d)
+begin
+    if en = '1' then
+        q <= d;
+    end if;
+end process;`
+    },
+    {
+        title: "T Flip-Flop",
+        group: "T / JK / SR",
+        desc: "Toggles its output on each rising edge while T is high; single-bit.",
+        diagram: { inputs: ["T"], reset: "sync", bit: true, caption: "T flip-flop" },
         code: `process(clk)
 begin
     if rising_edge(clk) then
         if rst = '1' then
             q <= '0';
-        else
-            q <= d;
+        elsif t = '1' then
+            q <= not q;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "JK Flip-Flop",
+        group: "T / JK / SR",
+        desc: "Hold, set, reset, or toggle depending on the J and K inputs; single-bit.",
+        diagram: { inputs: ["J", "K"], reset: "sync", bit: true, caption: "JK flip-flop" },
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= '0';
+        elsif j = '1' and k = '1' then
+            q <= not q;
+        elsif j = '1' then
+            q <= '1';
+        elsif k = '1' then
+            q <= '0';
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "SR Flip-Flop",
+        group: "T / JK / SR",
+        desc: "Clocked set/reset; the S = R = '1' combination is invalid and must be avoided.",
+        diagram: { inputs: ["S", "R"], reset: "sync", bit: true, caption: "SR flip-flop" },
+        code: `process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= '0';
+        elsif s = '1' and r = '0' then
+            q <= '1';
+        elsif r = '1' and s = '0' then
+            q <= '0';
         end if;
     end if;
 end process;`
@@ -339,34 +543,85 @@ end process;`
 
 };
 
-function loadTemplate(name, element)
+function buildSidebar()
 {
-    document.getElementById("title").innerText =
-        element.innerText.trim();
-
-    const container =
-        document.getElementById("templateContainer");
-
+    const container = document.getElementById("templates");
     container.innerHTML = "";
 
-    const entry = templates[name];
+    const projectItem = document.createElement("div");
+    projectItem.className = "template-item";
+    projectItem.textContent = "VHDL Project Template";
+    projectItem.onclick = () => loadProject(projectItem);
+    container.appendChild(projectItem);
 
-    if (Array.isArray(entry))
-    {
-        entry.forEach(item =>
-            container.appendChild(
-                createBlock(item.title, item.desc, item.code, item.diagram)));
-    }
-    else
-    {
-        container.appendChild(createBlock(null, null, entry, null));
-    }
+    const header = document.createElement("div");
+    header.className = "template-group-header";
+    header.innerHTML = `<span>Registers</span><span class="caret">▾</span>`;
+    container.appendChild(header);
 
-    document.querySelectorAll(".template-item")
-        .forEach(item =>
-            item.classList.remove("active"));
+    const sub = document.createElement("div");
+    sub.className = "template-subitems";
+    container.appendChild(sub);
+
+    header.onclick = () =>
+    {
+        header.classList.toggle("collapsed");
+        sub.classList.toggle("collapsed");
+    };
+
+    const groups = [];
+    templates.register.forEach(item =>
+    {
+        if (!groups.includes(item.group))
+            groups.push(item.group);
+    });
+
+    groups.forEach(group =>
+    {
+        const item = document.createElement("div");
+        item.className = "template-subitem";
+        item.textContent = group;
+        item.dataset.group = group;
+        item.onclick = () => loadGroup(group, item);
+        sub.appendChild(item);
+    });
+
+    return projectItem;
+}
+
+function setActive(element)
+{
+    document.querySelectorAll(".template-item, .template-subitem")
+        .forEach(el => el.classList.remove("active"));
 
     element.classList.add("active");
+}
+
+function loadProject(element)
+{
+    document.getElementById("title").innerText = "VHDL Project Template";
+
+    const container = document.getElementById("templateContainer");
+    container.innerHTML = "";
+    container.appendChild(createBlock(null, null, templates.project, null));
+
+    setActive(element);
+}
+
+function loadGroup(group, element)
+{
+    document.getElementById("title").innerText = group;
+
+    const container = document.getElementById("templateContainer");
+    container.innerHTML = "";
+
+    templates.register
+        .filter(item => item.group === group)
+        .forEach(item =>
+            container.appendChild(
+                createBlock(item.title, item.desc, item.code, item.diagram)));
+
+    setActive(element);
 }
 
 function createDiagram(d)
@@ -377,75 +632,112 @@ function createDiagram(d)
     const label = "#1e293b";
     const note = "#64748b";
 
+    const bus = !d.bit;
+    const clk = d.clk || "rising";
+    const edge = clk === "rising" || clk === "falling";
+
+    const inputs = (d.inputs || ["D"]).slice();
+    if (d.enable) inputs.push("EN");
+
+    const set = d.set
+        ? (typeof d.set === "string" ? { note: d.set } : d.set)
+        : null;
+    const reset = d.reset
+        ? (typeof d.reset === "string" ? { note: d.reset } : d.reset)
+        : null;
+
+    // Layout: data inputs stacked on the left, clock beneath them
+    const boxX = 110, boxW = 100, boxTop = 45, step = 28;
+    const firstY = boxTop + 22;
+    const clockY = firstY + inputs.length * step;
+    const boxBottom = clockY + 22;
+    const boxH = boxBottom - boxTop;
+    const outY = firstY;
+    const midX = boxX + boxW / 2;
+    const rightX = boxX + boxW;
+
+    const yTop = set ? 6 : 30;
+    const yBottom = boxBottom + (reset ? 44 : 12);
+
     const svg = [];
 
-    // Register body
-    svg.push(`<rect x="110" y="40" width="100" height="115" rx="6" `
+    // Body
+    svg.push(`<rect x="${boxX}" y="${boxTop}" width="${boxW}" height="${boxH}" rx="6" `
         + `fill="${fill}" stroke="${accent}" stroke-width="2"/>`);
 
-    // D data input
-    svg.push(`<line x1="55" y1="68" x2="110" y2="68" stroke="${wire}" stroke-width="2"/>`);
-    svg.push(`<text x="49" y="72" text-anchor="end" font-size="13" `
-        + `fill="${label}" font-family="Arial">D</text>`);
-
-    // EN enable input (optional)
-    if (d.enable)
+    // Left-side inputs
+    inputs.forEach((name, i) =>
     {
-        svg.push(`<line x1="55" y1="98" x2="110" y2="98" stroke="${wire}" stroke-width="2"/>`);
-        svg.push(`<text x="49" y="102" text-anchor="end" font-size="13" `
-            + `fill="${label}" font-family="Arial">EN</text>`);
+        const y = firstY + i * step;
+        svg.push(`<line x1="55" y1="${y}" x2="${boxX}" y2="${y}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="49" y="${y + 4}" text-anchor="end" font-size="13" `
+            + `fill="${label}" font-family="Arial">${name}</text>`);
+        if (bus && name === "D")
+            svg.push(`<line x1="78" y1="${y - 6}" x2="86" y2="${y + 6}" stroke="${wire}" stroke-width="1.5"/>`);
+    });
+
+    // Clock, or level-sensitive gate for a latch
+    const clkLabel = d.clkLabel || (clk === "level" ? "EN" : "CLK");
+    if (clk === "falling")
+    {
+        svg.push(`<line x1="55" y1="${clockY}" x2="100" y2="${clockY}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<circle cx="105" cy="${clockY}" r="5" fill="${fill}" stroke="${wire}" stroke-width="2"/>`);
+    }
+    else
+    {
+        svg.push(`<line x1="55" y1="${clockY}" x2="${boxX}" y2="${clockY}" stroke="${wire}" stroke-width="2"/>`);
+    }
+    if (edge)
+        svg.push(`<polyline points="${boxX},${clockY - 7} ${boxX + 12},${clockY} ${boxX},${clockY + 7}" `
+            + `fill="none" stroke="${accent}" stroke-width="2"/>`);
+    svg.push(`<text x="49" y="${clockY + 4}" text-anchor="end" font-size="13" `
+        + `fill="${label}" font-family="Arial">${clkLabel}</text>`);
+
+    // Output
+    svg.push(`<line x1="${rightX}" y1="${outY}" x2="265" y2="${outY}" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<text x="271" y="${outY + 4}" text-anchor="start" font-size="13" `
+        + `fill="${label}" font-family="Arial">${d.out || "Q"}</text>`);
+    if (bus)
+        svg.push(`<line x1="232" y1="${outY - 6}" x2="240" y2="${outY + 6}" stroke="${wire}" stroke-width="1.5"/>`);
+
+    // Set on top (optional)
+    if (set)
+    {
+        svg.push(`<line x1="${midX}" y1="${boxTop - 25}" x2="${midX}" y2="${boxTop}" stroke="${wire}" stroke-width="2"/>`);
+        if (set.low)
+            svg.push(`<circle cx="${midX}" cy="${boxTop - 5}" r="5" fill="${fill}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="${midX}" y="${boxTop - 30}" text-anchor="middle" font-size="12" `
+            + `fill="${label}" font-family="Arial">${set.label || "SET"}</text>`);
+        if (set.note)
+            svg.push(`<text x="${midX + 12}" y="${boxTop - 8}" text-anchor="start" font-size="9" `
+                + `fill="${note}" font-family="Arial">${set.note}</text>`);
     }
 
-    // CLK input with edge-triggered notch
-    svg.push(`<line x1="55" y1="130" x2="110" y2="130" stroke="${wire}" stroke-width="2"/>`);
-    svg.push(`<polyline points="110,123 122,130 110,137" fill="none" `
-        + `stroke="${accent}" stroke-width="2"/>`);
-    svg.push(`<text x="49" y="134" text-anchor="end" font-size="13" `
-        + `fill="${label}" font-family="Arial">CLK</text>`);
-
-    // Q output
-    svg.push(`<line x1="210" y1="68" x2="265" y2="68" stroke="${wire}" stroke-width="2"/>`);
-    svg.push(`<text x="271" y="72" text-anchor="start" font-size="13" `
-        + `fill="${label}" font-family="Arial">Q</text>`);
-
-    // Bus tick marks for multi-bit data/output
-    if (!d.bit)
+    // Reset on bottom (optional)
+    if (reset)
     {
-        svg.push(`<line x1="78" y1="62" x2="86" y2="74" stroke="${wire}" stroke-width="1.5"/>`);
-        svg.push(`<line x1="232" y1="62" x2="240" y2="74" stroke="${wire}" stroke-width="1.5"/>`);
-    }
-
-    // SET input on top (optional)
-    if (d.set)
-    {
-        svg.push(`<line x1="160" y1="15" x2="160" y2="40" stroke="${wire}" stroke-width="2"/>`);
-        svg.push(`<text x="160" y="11" text-anchor="middle" font-size="12" `
-            + `fill="${label}" font-family="Arial">SET</text>`);
-        svg.push(`<text x="172" y="32" text-anchor="start" font-size="9" `
-            + `fill="${note}" font-family="Arial">${d.set}</text>`);
-    }
-
-    // RST input on bottom (optional)
-    if (d.reset)
-    {
-        svg.push(`<line x1="160" y1="155" x2="160" y2="180" stroke="${wire}" stroke-width="2"/>`);
-        svg.push(`<text x="160" y="193" text-anchor="middle" font-size="12" `
-            + `fill="${label}" font-family="Arial">RST</text>`);
-        svg.push(`<text x="172" y="170" text-anchor="start" font-size="9" `
-            + `fill="${note}" font-family="Arial">${d.reset}</text>`);
+        const stubTop = reset.low ? boxBottom + 10 : boxBottom;
+        svg.push(`<line x1="${midX}" y1="${stubTop}" x2="${midX}" y2="${boxBottom + 25}" stroke="${wire}" stroke-width="2"/>`);
+        if (reset.low)
+            svg.push(`<circle cx="${midX}" cy="${boxBottom + 5}" r="5" fill="${fill}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="${midX}" y="${boxBottom + 38}" text-anchor="middle" font-size="12" `
+            + `fill="${label}" font-family="Arial">${reset.label || "RST"}</text>`);
+        if (reset.note)
+            svg.push(`<text x="${midX + 12}" y="${boxBottom + 15}" text-anchor="start" font-size="9" `
+                + `fill="${note}" font-family="Arial">${reset.note}</text>`);
     }
 
     const wrap = document.createElement("div");
     wrap.className = "diagram";
     wrap.innerHTML =
-        `<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" `
+        `<svg viewBox="0 ${yTop} 300 ${yBottom - yTop}" xmlns="http://www.w3.org/2000/svg" `
         + `role="img" aria-label="Register schematic diagram">`
         + svg.join("")
         + `</svg>`;
 
     const cap = document.createElement("div");
     cap.className = "diagram-cap";
-    cap.textContent = d.bit ? "1-bit D flip-flop" : "N-bit register";
+    cap.textContent = d.caption || (bus ? "N-bit register" : "1-bit register");
     wrap.appendChild(cap);
 
     return wrap;
@@ -533,17 +825,37 @@ function filterTemplates()
         .forEach(item =>
         {
             item.style.display =
-                item.innerText.toLowerCase()
-                .includes(value)
-                ? "block"
-                : "none";
+                item.innerText.toLowerCase().includes(value)
+                    ? "block"
+                    : "none";
         });
+
+    document.querySelectorAll(".template-subitem")
+        .forEach(sub =>
+        {
+            const group = sub.dataset.group;
+            const inGroup = templates.register.some(item =>
+                item.group === group &&
+                (item.title.toLowerCase().includes(value) ||
+                 item.desc.toLowerCase().includes(value)));
+
+            sub.style.display =
+                group.toLowerCase().includes(value) || inGroup
+                    ? "block"
+                    : "none";
+        });
+
+    if (value)
+    {
+        document.querySelector(".template-group-header")
+            .classList.remove("collapsed");
+        document.querySelector(".template-subitems")
+            .classList.remove("collapsed");
+    }
 }
 
-loadTemplate(
-    "project",
-    document.querySelector(".template-item")
-);
+buildSidebar();
+loadProject(document.querySelector(".template-item"));
 
 </script>
 

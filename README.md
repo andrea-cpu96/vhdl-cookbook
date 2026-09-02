@@ -21,7 +21,8 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - VHDL Project Template
 
 ### Sequential Logic
-- Register
+- Register (D, set/preset, latches, T/JK/SR)
+- Shift Registers (SISO, SIPO, PISO, PIPO, universal, ring/Johnson, LFSR, barrel)
 
 ## Planned Templates
 
@@ -29,7 +30,6 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - Register with Enable
 - Counter
 - Up/Down Counter
-- Shift Register
 - Timer
 
 ### Finite State Machines

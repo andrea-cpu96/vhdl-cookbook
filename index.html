@@ -551,9 +551,338 @@ begin
     end if;
 end process;`
     }
-]
+],
 
+shift: [
+
+    /* ── Serial I/O ─────────────────────────────── */
+
+    {
+        title: "SISO — Shift Left",
+        group: "Serial I/O",
+        desc: "Serial-in / serial-out delay line. Data enters the LSB and ripples toward the MSB, which appears at dout after N clock cycles.",
+        diagram: { bit: true, inputs: ["DIN"], out: "DO", reset: "sync", caption: "N-stage SISO (shift left)" },
+        code: `-- N-bit SISO shift register (shift left)
+-- din  : serial input
+-- dout : serial output (= q(N-1))
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        else
+            q <= q(N-2 downto 0) & din;
+        end if;
+    end if;
+end process;
+
+dout <= q(N-1);`
+    },
+    {
+        title: "SISO — Shift Right",
+        group: "Serial I/O",
+        desc: "Serial-in / serial-out register where data enters the MSB and exits the LSB (little-endian / LSB-first shift).",
+        diagram: { bit: true, inputs: ["DIN"], out: "DO", reset: "sync", caption: "N-stage SISO (shift right)" },
+        code: `-- N-bit SISO shift register (shift right)
+-- din  : serial input
+-- dout : serial output (= q(0))
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        else
+            q <= din & q(N-1 downto 1);
+        end if;
+    end if;
+end process;
+
+dout <= q(0);`
+    },
+    {
+        title: "SIPO — Serial In / Parallel Out",
+        group: "Serial I/O",
+        desc: "Deserializer: a stream of bits is shifted in and the full N-bit word is available in parallel after N clock cycles (UART RX pattern).",
+        diagram: { inputs: ["SI"], reset: "sync", caption: "N-bit SIPO (serial → parallel)" },
+        code: `-- N-bit SIPO shift register (deserializer)
+-- si : serial input
+-- q  : parallel output word
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        else
+            q <= q(N-2 downto 0) & si;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "PISO — Parallel In / Serial Out",
+        group: "Serial I/O",
+        desc: "Serializer: the parallel word is captured when load is asserted, then shifted out one bit per cycle (LSB first by default).",
+        diagram: { inputs: ["D", "LOAD", "SHIFT"], out: "SO", reset: "sync", caption: "N-bit PISO (parallel → serial)" },
+        code: `-- N-bit PISO shift register (serializer)
+-- d     : parallel input word
+-- load  : parallel capture when high
+-- shift : shift out one bit when high
+-- so    : serial output
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        elsif load = '1' then
+            q <= d;
+        elsif shift = '1' then
+            q <= '0' & q(N-1 downto 1);   -- LSB first
+        end if;
+    end if;
+end process;
+
+so <= q(0);`
+    },
+
+    /* ── Parallel / Universal ────────────────────── */
+
+    {
+        title: "PIPO — Parallel In / Parallel Out",
+        group: "Parallel / Universal",
+        desc: "Captures the whole data word when load is asserted and otherwise holds — the structural building block used by PISO and universal registers.",
+        diagram: { inputs: ["D", "LOAD"], reset: "sync", caption: "N-bit PIPO (load)" },
+        code: `-- N-bit PIPO register with load enable
+-- (identical to an enable-gated parallel register)
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        elsif load = '1' then
+            q <= d;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "Universal Bidirectional Shift Register",
+        group: "Parallel / Universal",
+        desc: "74194-style: parallel load, shift left, shift right, or hold, selected by load and dir with load taking priority.",
+        diagram: { inputs: ["D", "LOAD", "DIR"], reset: "sync", caption: "Universal bidirectional shift register" },
+        code: `-- Universal bidirectional shift register
+-- load : parallel load (highest priority)
+-- dir  : '1' = shift left, '0' = shift right
+-- si_l : serial input for left shift (bit 0)
+-- si_r : serial input for right shift (bit N-1)
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        elsif load = '1' then
+            q <= d;
+        elsif dir = '1' then
+            q <= q(N-2 downto 0) & si_l;   -- shift left
+        else
+            q <= si_r & q(N-1 downto 1);   -- shift right
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "Shift Register with Load + Enable",
+        group: "Parallel / Universal",
+        desc: "Loads a seed word, then shifts on each enable — the pattern used by serializers with framing and by streaming DSP datapaths. Asynchronous reset.",
+        diagram: { inputs: ["D", "SI"], enable: true, reset: "async", caption: "Shift register with load + enable" },
+        code: `-- Seed load + enable-gated shift (async reset)
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk, rst)
+begin
+    if rst = '1' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        if load = '1' then
+            q <= d;                        -- seed / initial value
+        elsif en = '1' then
+            q <= q(N-2 downto 0) & si;     -- shift while enabled
+        end if;
+    end if;
+end process;`
+    },
+
+/* ── Feedback ─────────────────────────────────── */
+
+    {
+        title: "Ring Counter",
+        group: "Feedback",
+        desc: "One-hot counter: a single '1' circulates around the ring, giving N states from N flip-flops with glitch-free decoding.",
+        diagram: { inputs: [], reset: "sync", caption: "N-bit ring counter (one-hot)" },
+        code: `-- Ring counter: one-hot pattern circulates forever
+-- (last output feeds the first stage)
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (0 => '1', others => '0');
+        else
+            q <= q(0) & q(N-1 downto 1);   -- rotate right
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "Johnson Counter",
+        group: "Feedback",
+        desc: "Twisted-ring counter: the complemented last stage feeds the input, producing 2N states where only one bit changes per step.",
+        diagram: { inputs: [], reset: "sync", caption: "N-bit Johnson counter (2N states)" },
+        code: `-- Johnson (twisted-ring) counter: 2N states
+-- q(0) feeds back inverted into the MSB
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        else
+            q <= (not q(0)) & q(N-1 downto 1);
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "LFSR — Fibonacci (Maximal Length)",
+        group: "Feedback",
+        desc: "PRBS generator using external-XOR feedback with the maximal-length polynomial x^16 + x^14 + x^13 + x^11 + 1 (period 2^16 − 1). The all-zero state is a lock-up and must be avoided.",
+        diagram: { inputs: [], reset: "sync", caption: "16-bit LFSR (Fibonacci)" },
+        code: `-- 16-bit maximal-length LFSR (Fibonacci / many-to-one)
+-- polynomial x^16 + x^14 + x^13 + x^11 + 1 → period 2^16 - 1
+-- WARNING: the all-zero state locks up; seed must be non-zero.
+signal qr : std_logic_vector(15 downto 0);
+signal fb : std_logic;
+
+fb <= qr(0) xor qr(2) xor qr(3) xor qr(5);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            qr <= (0 => '1', others => '0');
+        elsif load = '1' then
+            qr <= seed;                      -- user seed (non-zero)
+        else
+            qr <= fb & qr(15 downto 1);      -- feedback into MSB
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "LFSR — Galois (Internal XOR)",
+        group: "Feedback",
+        desc: "Same maximal-length polynomial in Galois (one-to-many) form: fewer XOR paths, faster in hardware. Requires VHDL-2008 for the array xor.",
+        diagram: { inputs: [], reset: "sync", caption: "16-bit LFSR (Galois)" },
+        code: `-- 16-bit maximal-length LFSR (Galois / one-to-many)
+-- same polynomial x^16 + x^14 + x^13 + x^11 + 1
+-- tap mask = x"B400"  (bits 15, 13, 12, 10)
+signal qr : std_logic_vector(15 downto 0);
+
+process(clk)
+    variable nx : std_logic_vector(15 downto 0);
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            qr <= (0 => '1', others => '0');
+        else
+            nx := '0' & qr(15 downto 1);     -- shift right
+            if qr(0) = '1' then
+                nx := nx xor x"B400";        -- VHDL-2008
+            end if;
+            qr <= nx;
+        end if;
+    end if;
+end process;`
+    },
+
+    /* ── Special ──────────────────────────────────── */
+
+    {
+        title: "Variable-Length Delay Line",
+        group: "Special",
+        desc: "Fixed-depth shift register whose output tap is selected by a register, giving a programmable pipeline delay of 0..N−1 clocks. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["D", "SEL"], out: "DO", reset: "sync", caption: "Programmable N-tap delay" },
+        code: `-- Programmable delay line:
+-- dout lags din by SEL clock cycles (guard: sel < N)
+signal qr : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            qr <= (others => '0');
+        else
+            qr <= qr(N-2 downto 0) & din;
+        end if;
+    end if;
+end process;
+
+dout <= qr(to_integer(unsigned(sel)));`
+    },
+    {
+        title: "Barrel Shifter — Combinational",
+        group: "Special",
+        desc: "Rotates (or shifts) a word by an arbitrary amount in a single combinational path — no flip-flops. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["D", "AMT"], out: "Q", caption: "Barrel shifter (rotate right)" },
+        code: `-- Combinational barrel shifter: rotate right by amt
+-- (use rotate_left / srl / sll for the other directions)
+q <= std_logic_vector(
+        rotate_right(unsigned(d),
+                     to_integer(unsigned(amt))));`
+    },
+    {
+        title: "Rotate Right — One Position per Clock",
+        group: "Special",
+        desc: "Cyclic rotation with a clock enable: the LSB wraps into the MSB each cycle, useful for drum-style stepping and bit-serial addressing.",
+        diagram: { inputs: [], enable: true, reset: "sync", caption: "Rotate right with enable" },
+        code: `-- Cyclic rotate right, one position per enabled clock
+signal q : std_logic_vector(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            q <= (others => '0');
+        elsif en = '1' then
+            q <= q(0) & q(N-1 downto 1);     -- LSB wraps to MSB
+        end if;
+    end if;
+end process;`
+    }
+
+]
 };
+
+const templateGroups = [
+    { name: "Registers", array: templates.register },
+    { name: "Shift Registers", array: templates.shift }
+];
+
+const allTemplateItems =
+    templateGroups.reduce((acc, group) => acc.concat(group.array), []);
 
 function buildSidebar()
 {
@@ -566,36 +895,40 @@ function buildSidebar()
     projectItem.onclick = () => loadProject(projectItem);
     container.appendChild(projectItem);
 
-    const header = document.createElement("div");
-    header.className = "template-group-header collapsed";
-    header.innerHTML = `<span>Registers</span><span class="caret">▾</span>`;
-    container.appendChild(header);
-
-    const sub = document.createElement("div");
-    sub.className = "template-subitems collapsed";
-    container.appendChild(sub);
-
-    header.onclick = () =>
+    templateGroups.forEach(tg =>
     {
-        header.classList.toggle("collapsed");
-        sub.classList.toggle("collapsed");
-    };
+        const header = document.createElement("div");
+        header.className = "template-group-header collapsed";
+        header.innerHTML =
+            `<span>${tg.name}</span><span class="caret">▾</span>`;
+        container.appendChild(header);
 
-    const groups = [];
-    templates.register.forEach(item =>
-    {
-        if (!groups.includes(item.group))
-            groups.push(item.group);
-    });
+        const sub = document.createElement("div");
+        sub.className = "template-subitems collapsed";
+        container.appendChild(sub);
 
-    groups.forEach(group =>
-    {
-        const item = document.createElement("div");
-        item.className = "template-subitem";
-        item.textContent = group;
-        item.dataset.group = group;
-        item.onclick = () => loadGroup(group, item);
-        sub.appendChild(item);
+        header.onclick = () =>
+        {
+            header.classList.toggle("collapsed");
+            sub.classList.toggle("collapsed");
+        };
+
+        const groups = [];
+        tg.array.forEach(item =>
+        {
+            if (!groups.includes(item.group))
+                groups.push(item.group);
+        });
+
+        groups.forEach(group =>
+        {
+            const item = document.createElement("div");
+            item.className = "template-subitem";
+            item.textContent = group;
+            item.dataset.group = group;
+            item.onclick = () => loadGroup(group, item, tg.array);
+            sub.appendChild(item);
+        });
     });
 
     return projectItem;
@@ -620,14 +953,14 @@ function loadProject(element)
     setActive(element);
 }
 
-function loadGroup(group, element)
+function loadGroup(group, element, items)
 {
     document.getElementById("title").innerText = group;
 
     const container = document.getElementById("templateContainer");
     container.innerHTML = "";
 
-    templates.register
+    items
         .filter(item => item.group === group)
         .forEach(item =>
             container.appendChild(
@@ -846,7 +1179,7 @@ function filterTemplates()
         .forEach(sub =>
         {
             const group = sub.dataset.group;
-            const inGroup = templates.register.some(item =>
+            const inGroup = allTemplateItems.some(item =>
                 item.group === group &&
                 (item.title.toLowerCase().includes(value) ||
                  item.desc.toLowerCase().includes(value)));
@@ -859,10 +1192,10 @@ function filterTemplates()
 
     if (value)
     {
-        document.querySelector(".template-group-header")
-            .classList.remove("collapsed");
-        document.querySelector(".template-subitems")
-            .classList.remove("collapsed");
+        document.querySelectorAll(".template-group-header")
+            .forEach(el => el.classList.remove("collapsed"));
+        document.querySelectorAll(".template-subitems")
+            .forEach(el => el.classList.remove("collapsed"));
     }
 }
 

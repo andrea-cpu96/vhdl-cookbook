@@ -505,6 +505,32 @@ with digit select
            "0111101" when x"D",
            "1001111" when x"E",
            "1000111" when others;   -- F`
+    },
+
+    /* ── Shifters ────────────────── */
+
+    {
+        title: "Barrel Shifter",
+        group: "Shifters",
+        desc: "Rotates (or shifts) a word by an arbitrary amount in a single combinational path — no flip-flops. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Combinational barrel shifter: rotate right by amt
+-- (use rotate_left / srl / sll for the other directions)
+q <= std_logic_vector(
+        rotate_right(unsigned(d),
+                     to_integer(unsigned(amt))));`
+    },
+    {
+        title: "Arithmetic Shift Right",
+        group: "Shifters",
+        desc: "Shifts a signed word right by an arbitrary amount while replicating the sign bit (÷2^amt for two's-complement). shift_right on unsigned gives a logical, zero-filled shift instead. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Combinational arithmetic shift right by amt (sign-preserving)
+-- shift_right on SIGNED replicates the MSB (sign bit);
+-- use shift_right on UNSIGNED for a logical (zero-fill) shift.
+q <= std_logic_vector(
+        shift_right(signed(d),
+                    to_integer(unsigned(amt))));`
     }
 
 ],
@@ -1190,29 +1216,6 @@ begin
 end process;
 
 dout <= qr(to_integer(unsigned(sel)));`
-    },
-    {
-        title: "Barrel Shifter — Combinational",
-        group: "Special",
-        desc: "Rotates (or shifts) a word by an arbitrary amount in a single combinational path — no flip-flops. Requires ieee.numeric_std.all.",
-        diagram: { inputs: ["D", "AMT"], out: "Q", caption: "Barrel shifter (rotate right)" },
-        code: `-- Combinational barrel shifter: rotate right by amt
--- (use rotate_left / srl / sll for the other directions)
-q <= std_logic_vector(
-        rotate_right(unsigned(d),
-                     to_integer(unsigned(amt))));`
-    },
-    {
-        title: "Arithmetic Shift Right — Combinational",
-        group: "Special",
-        desc: "Shifts a signed word right by an arbitrary amount while replicating the sign bit (÷2^amt for two's-complement). shift_right on unsigned gives a logical, zero-filled shift instead. Requires ieee.numeric_std.all.",
-        diagram: { inputs: ["D", "AMT"], out: "Q", caption: "Arithmetic shift right (signed)" },
-        code: `-- Combinational arithmetic shift right by amt (sign-preserving)
--- shift_right on SIGNED replicates the MSB (sign bit);
--- use shift_right on UNSIGNED for a logical (zero-fill) shift.
-q <= std_logic_vector(
-        shift_right(signed(d),
-                    to_integer(unsigned(amt))));`
     },
     {
         title: "Rotate Right — One Position per Clock",

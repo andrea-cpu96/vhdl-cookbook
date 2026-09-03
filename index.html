@@ -2859,44 +2859,63 @@ function copyBlock(btn)
     }, 2000);
 }
 
+// Match when every typed token is the start of a word in the text (title/group).
+function matchWords(text, tokens)
+{
+    const words = text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    return tokens.every(tok => words.some(w => w.startsWith(tok)));
+}
+
 function filterTemplates()
 {
-    const value =
-        document.getElementById("search")
-        .value
-        .toLowerCase();
+    const value = document.getElementById("search").value.trim().toLowerCase();
+    const searching = value.length > 0;
+    const tokens = value.split(/\s+/).filter(Boolean);
 
     document.querySelectorAll(".template-item")
         .forEach(item =>
         {
             item.style.display =
-                item.innerText.toLowerCase().includes(value)
-                    ? "block"
-                    : "none";
+                (!searching || matchWords(item.innerText, tokens)) ? "" : "none";
         });
 
     document.querySelectorAll(".template-subitem")
         .forEach(sub =>
         {
             const group = sub.dataset.group;
-            const inGroup = allTemplateItems.some(item =>
-                item.group === group &&
-                (item.title.toLowerCase().includes(value) ||
-                 item.desc.toLowerCase().includes(value)));
+            const match = !searching
+                || matchWords(group, tokens)
+                || allTemplateItems.some(item =>
+                    item.group === group && matchWords(item.title, tokens));
 
-            sub.style.display =
-                group.toLowerCase().includes(value) || inGroup
-                    ? "block"
-                    : "none";
+            sub.style.display = match ? "" : "none";
         });
 
-    if (value)
-    {
-        document.querySelectorAll(".template-group-header")
-            .forEach(el => el.classList.remove("collapsed"));
-        document.querySelectorAll(".template-subitems")
-            .forEach(el => el.classList.remove("collapsed"));
-    }
+    // A header (including the Sequential Logic umbrella) is shown only while it still
+    // holds a visible group; when the box is cleared everything collapses back.
+    document.querySelectorAll(".template-group-header")
+        .forEach(header =>
+        {
+            const container = header.nextElementSibling;
+            const hasMatch = container &&
+                [...container.querySelectorAll(".template-subitem")]
+                    .some(s => s.style.display !== "none");
+
+            if (searching)
+            {
+                header.style.display = hasMatch ? "" : "none";
+                container.style.display = hasMatch ? "" : "none";
+                header.classList.remove("collapsed");
+                container.classList.remove("collapsed");
+            }
+            else
+            {
+                header.style.display = "";
+                container.style.display = "";
+                header.classList.add("collapsed");
+                container.classList.add("collapsed");
+            }
+        });
 }
 
 buildSidebar();

@@ -642,6 +642,67 @@ end process;
 result <= std_logic_vector(acc);`
     },
 
+    /* ── Divide ───────────────────────── */
+
+    {
+        title: "Divide by 2^K (Shift)",
+        group: "Divide",
+        desc: "Dividing an unsigned value by a power of two is just a logical shift right, so it costs no logic. Use shift_right on a signed value for an arithmetic (sign-preserving) shift. Requires ieee.numeric_std.all.",
+        diagram: { clk: "none", bit: true, inputs: ["a"], out: "q", buses: ["a", "q"], caption: "Divide by 2^K (shift)" },
+        code: `-- Divide an unsigned value by 2**K: a logical shift right (costs no logic).
+q <= std_logic_vector(shift_right(unsigned(a), K));
+
+-- Signed operands: shift_right on SIGNED gives an arithmetic (sign-preserving) shift.
+-- Multiply by 2**K is the mirror: shift_left(unsigned(a), K).`
+    },
+    {
+        title: "Sequential Divider (Restoring)",
+        group: "Divide",
+        desc: "Multi-cycle restoring divider: pulse start with a and b, then done strobes after N clocks with quotient q and remainder r. Variable-divisor division needs a sequential core like this (or vendor IP) — the / operator only synthesizes for constant divisors. Requires ieee.numeric_std.all.",
+        diagram: { bit: true, inputs: ["a", "b", "start"], outputs: ["q", "r", "done"], buses: ["a", "b", "q", "r"], caption: "Sequential restoring divider" },
+        code: `-- Sequential restoring divider (unsigned): q = a / b, r = a mod b in N clocks.
+-- Pulse 'start' with a, b valid; 'done' strobes when q and r are ready.
+signal remr : unsigned(N-1 downto 0);       -- working remainder
+signal quot : unsigned(N-1 downto 0);       -- dividend, becomes the quotient
+signal dvsr : unsigned(N-1 downto 0);
+signal cnt  : natural range 0 to N;
+signal busy : std_logic := '0';
+
+process(clk)
+    variable diff : unsigned(N downto 0);   -- extra bit captures the borrow
+begin
+    if rising_edge(clk) then
+        done <= '0';
+        if busy = '0' then
+            if start = '1' then
+                remr <= (others => '0');
+                quot <= unsigned(a);
+                dvsr <= unsigned(b);
+                cnt  <= N;
+                busy <= '1';
+            end if;
+        else
+            diff := (remr & quot(N-1)) - ('0' & dvsr);   -- shift in next bit, trial subtract
+            if diff(N) = '0' then                        -- divisor fits -> quotient bit 1
+                remr <= diff(N-1 downto 0);
+                quot <= quot(N-2 downto 0) & '1';
+            else                                         -- restore -> quotient bit 0
+                remr <= remr(N-2 downto 0) & quot(N-1);
+                quot <= quot(N-2 downto 0) & '0';
+            end if;
+            cnt <= cnt - 1;
+            if cnt = 1 then
+                busy <= '0';
+                done <= '1';
+            end if;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(quot);                -- quotient
+r <= std_logic_vector(remr);                -- remainder`
+    },
+
     /* ── Accumulate & Saturate ───────────── */
 
     {

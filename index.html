@@ -999,6 +999,38 @@ begin
         end if;
     end if;
 end process;`
+    },
+
+    /* ── Pipeline ─────────────────────────────────── */
+
+    {
+        title: "Pipeline Register (Data + Valid)",
+        group: "Pipeline",
+        desc: "N-stage pipeline that moves data and its valid flag together, one stage per clock. Use it to add latency (raise fmax) or to delay a side-band signal so it stays aligned with a pipelined datapath.",
+        diagram: { bit: true, inputs: ["din", "vld"], outputs: ["dout", "vld"], reset: "sync", buses: ["din", "dout"], caption: "N-stage pipeline (data + valid)" },
+        code: `-- N-stage pipeline: data and its 'valid' move together, one stage per clock.
+-- Add latency to raise fmax, or delay a side signal to match a pipelined path.
+type stage_t is array (0 to N-1) of std_logic_vector(WIDTH-1 downto 0);
+signal data_p  : stage_t;
+signal valid_p : std_logic_vector(0 to N-1);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        data_p(0)  <= din;
+        valid_p(0) <= din_valid;
+        for i in 1 to N-1 loop
+            data_p(i)  <= data_p(i-1);        -- data marches down the stages
+            valid_p(i) <= valid_p(i-1);
+        end loop;
+        if rst = '1' then
+            valid_p <= (others => '0');        -- clear valids; data is don't-care
+        end if;
+    end if;
+end process;
+
+dout       <= data_p(N-1);
+dout_valid <= valid_p(N-1);`
     }
 ],
 

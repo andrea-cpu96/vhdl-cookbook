@@ -1930,6 +1930,57 @@ begin
         end if;
     end if;
 end process;`
+    },
+    {
+        title: "Asynchronous FIFO — Dual-Clock",
+        group: "FIFO",
+        desc: "Dual-clock FIFO for crossing clock domains: Gray-code read/write pointers are passed through 2-FF synchronizers so full and empty stay safe across the wr_clk and rd_clk domains. DEPTH = 2**ADDR_W. Requires ieee.numeric_std.all.",
+        diagram: { clk: "none", inputs: ["wr_clk", "din", "wr", "rd_clk", "rd"], out: "dout", buses: ["din", "dout"], caption: "Async FIFO (two clocks)" },
+        code: `-- Asynchronous (dual-clock) FIFO: Gray-code pointers + 2-FF synchronizers.
+-- Independent wr_clk / rd_clk domains; DEPTH = 2**ADDR_W words.
+type mem_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
+signal mem : mem_t;
+
+-- pointers use ADDR_W+1 bits; the extra MSB separates full from empty
+signal wbin, wgry : unsigned(ADDR_W downto 0) := (others => '0');
+signal rbin, rgry : unsigned(ADDR_W downto 0) := (others => '0');
+signal rgry_w1, rgry_w2 : unsigned(ADDR_W downto 0) := (others => '0');  -- read Gray -> wr domain
+signal wgry_r1, wgry_r2 : unsigned(ADDR_W downto 0) := (others => '0');  -- write Gray -> rd domain
+
+-- write clock domain
+process(wr_clk)
+    variable nxt : unsigned(ADDR_W downto 0);
+begin
+    if rising_edge(wr_clk) then
+        rgry_w1 <= rgry;  rgry_w2 <= rgry_w1;          -- 2-FF sync read pointer in
+        if wr = '1' and full = '0' then
+            mem(to_integer(wbin(ADDR_W-1 downto 0))) <= din;
+            nxt  := wbin + 1;
+            wbin <= nxt;
+            wgry <= nxt xor ('0' & nxt(ADDR_W downto 1));   -- binary -> Gray
+        end if;
+    end if;
+end process;
+
+-- read clock domain
+process(rd_clk)
+    variable nxt : unsigned(ADDR_W downto 0);
+begin
+    if rising_edge(rd_clk) then
+        wgry_r1 <= wgry;  wgry_r2 <= wgry_r1;          -- 2-FF sync write pointer in
+        if rd = '1' and empty = '0' then
+            dout <= mem(to_integer(rbin(ADDR_W-1 downto 0)));
+            nxt  := rbin + 1;
+            rbin <= nxt;
+            rgry <= nxt xor ('0' & nxt(ADDR_W downto 1));
+        end if;
+    end if;
+end process;
+
+-- flags: empty compared in the read domain, full in the write domain
+empty <= '1' when rgry = wgry_r2 else '0';
+full  <= '1' when wgry = ((not rgry_w2(ADDR_W downto ADDR_W-1))
+                          & rgry_w2(ADDR_W-2 downto 0)) else '0';`
     }
 
 ],

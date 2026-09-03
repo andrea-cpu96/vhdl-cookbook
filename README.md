@@ -25,12 +25,14 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - Shift Registers (SISO, SIPO, PISO, PIPO, universal, ring/Johnson, LFSR, barrel)
 - Counters (up, down, modulo-N, up/down, load/enable, saturating, Gray-code, BCD, one-shot timer, periodic tick)
 
-## Planned Templates
-
 ### Finite State Machines
-- Moore FSM
-- Mealy FSM
-- FSM with Enumerated States
+- Moore FSM (two-process)
+- Mealy FSM (two-process)
+- Moore FSM with registered outputs (three-process)
+- Safe FSM (illegal-state recovery)
+- State encoding (one-hot / binary / gray)
+
+## Planned Templates
 
 ### Memory
 - Single-Port RAM

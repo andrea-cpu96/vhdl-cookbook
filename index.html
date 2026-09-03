@@ -1159,13 +1159,216 @@ end process;
 bcd <= std_logic_vector(tens) & std_logic_vector(ones);`
     }
 
+],
+
+fsm: [
+
+    /* ── Moore ──────────────────────────────────── */
+
+    {
+        title: "Moore FSM — Two-Process",
+        group: "Moore",
+        desc: "Canonical two-process Moore machine (state register + combinational next-state/output). Outputs depend on the current state only. Example: a '11' sequence detector.",
+        diagram: { inputs: ["X"], out: "Y", reset: "sync", bit: true, caption: "Moore FSM — '11' detector" },
+        code: `-- Two-process Moore "11" detector: y = '1' after two consecutive 1s
+-- outputs depend on the CURRENT STATE only
+type state_t is (S0, S1, S2);        -- zero, one, two+ ones seen
+signal state, nstate : state_t;
+
+-- 1) state register (sequential)
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            state <= S0;
+        else
+            state <= nstate;
+        end if;
+    end if;
+end process;
+
+-- 2) next-state + Moore output (combinational)
+process(state, x)
+begin
+    nstate <= state;                 -- default: hold (prevents latches)
+    y      <= '0';
+    case state is
+        when S0 =>
+            if x = '1' then nstate <= S1; else nstate <= S0; end if;
+        when S1 =>
+            if x = '1' then nstate <= S2; else nstate <= S0; end if;
+        when S2 =>
+            y <= '1';                -- output tied to state S2
+            if x = '1' then nstate <= S2; else nstate <= S0; end if;
+    end case;
+end process;`
+    },
+
+    /* ── Mealy ──────────────────────────────────── */
+
+    {
+        title: "Mealy FSM — Two-Process",
+        group: "Mealy",
+        desc: "Two-process Mealy machine: outputs depend on the state AND the current inputs, so they react a cycle earlier and often need fewer states. Same '11' detector in two states.",
+        diagram: { inputs: ["X"], out: "Y", reset: "sync", bit: true, caption: "Mealy FSM — '11' detector" },
+        code: `-- Two-process Mealy "11" detector: y = '1' when a 1 arrives while in S1
+-- outputs depend on the STATE and the INPUT (one fewer state than Moore)
+type state_t is (S0, S1);            -- zero or one consecutive ones seen
+signal state, nstate : state_t;
+
+-- 1) state register (sequential)
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            state <= S0;
+        else
+            state <= nstate;
+        end if;
+    end if;
+end process;
+
+-- 2) next-state + Mealy output (combinational)
+process(state, x)
+begin
+    nstate <= state;                 -- default: hold
+    y      <= '0';
+    case state is
+        when S0 =>
+            if x = '1' then nstate <= S1; else nstate <= S0; end if;
+        when S1 =>
+            if x = '1' then
+                nstate <= S1;
+                y      <= '1';       -- depends on state AND input
+            else
+                nstate <= S0;
+            end if;
+    end case;
+end process;`
+    },
+
+    /* ── Coding Styles ────────────────────────── */
+
+    {
+        title: "Moore FSM — Registered Outputs",
+        group: "Coding Styles",
+        desc: "Three-process Moore machine whose outputs are registered for glitch-free timing. Decoding them from the next state keeps them aligned with the state (no extra latency).",
+        diagram: { inputs: ["START", "FIN"], out: "BUSY", reset: "sync", bit: true, caption: "Moore FSM with registered outputs" },
+        code: `-- Three-process Moore FSM with glitch-free REGISTERED outputs.
+-- Outputs are decoded from the NEXT state so they still line up with 'state'.
+type state_t is (IDLE, RUN, DONE);
+signal state, nstate : state_t;
+
+-- 1) state register
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            state <= IDLE;
+        else
+            state <= nstate;
+        end if;
+    end if;
+end process;
+
+-- 2) next-state logic (combinational)
+process(state, start, fin)
+begin
+    nstate <= state;                 -- default: hold
+    case state is
+        when IDLE => if start = '1' then nstate <= RUN;  end if;
+        when RUN  => if fin   = '1' then nstate <= DONE; end if;
+        when DONE =>                      nstate <= IDLE;
+    end case;
+end process;
+
+-- 3) output register: decode from the NEXT state
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            busy <= '0';
+            done <= '0';
+        else
+            busy <= '0';             -- defaults each cycle
+            done <= '0';
+            case nstate is
+                when RUN    => busy <= '1';
+                when DONE   => done <= '1';
+                when others => null;
+            end case;
+        end if;
+    end if;
+end process;`
+    },
+    {
+        title: "Safe FSM — Illegal-State Recovery",
+        group: "Coding Styles",
+        desc: "Encodes the states explicitly so unused codes are representable, then uses when others to force recovery to IDLE if the machine ever lands in an illegal state (glitch or SEU).",
+        diagram: { inputs: ["START", "FIN"], out: "BUSY", reset: "sync", bit: true, caption: "Safe FSM (illegal-state recovery)" },
+        code: `-- Safe FSM: explicit encoding makes illegal codes reachable, and
+-- 'when others' returns the machine to a known state after an upset.
+subtype state_t is std_logic_vector(1 downto 0);
+constant IDLE : state_t := "00";
+constant RUN  : state_t := "01";
+constant DONE : state_t := "10";     -- "11" is unused / illegal
+signal state, nstate : state_t;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            state <= IDLE;
+        else
+            state <= nstate;
+        end if;
+    end if;
+end process;
+
+process(state, start, fin)
+begin
+    nstate <= state;
+    busy   <= '0';
+    case state is
+        when IDLE =>
+            if start = '1' then nstate <= RUN; end if;
+        when RUN =>
+            busy <= '1';
+            if fin = '1' then nstate <= DONE; end if;
+        when DONE =>
+            nstate <= IDLE;
+        when others =>
+            nstate <= IDLE;          -- recover from any illegal code
+    end case;
+end process;`
+    },
+    {
+        title: "State Encoding — One-Hot / Binary / Gray",
+        group: "Coding Styles",
+        desc: "Keep the readable enumerated state type but pin the synthesis encoding with a vendor attribute instead of relying on the tool default (often one-hot on FPGAs).",
+        diagram: null,
+        code: `-- Enumerated states stay readable; an attribute fixes the encoding.
+type state_t is (IDLE, LOAD, RUN, DONE);
+signal state : state_t;
+
+-- Synplify / Lattice / Microchip:
+attribute syn_encoding : string;
+attribute syn_encoding of state_t : type is "onehot";   -- "sequential" | "gray"
+
+-- Xilinx Vivado equivalent:
+--   attribute fsm_encoding : string;
+--   attribute fsm_encoding of state : signal is "one_hot";
+-- Intel Quartus: honours syn_encoding, or leave encoding to the tool.`
+    }
+
 ]
 };
 
 const templateGroups = [
     { name: "Registers", array: templates.register },
     { name: "Shift Registers", array: templates.shift },
-    { name: "Counters", array: templates.counter }
+    { name: "Counters", array: templates.counter },
+    { name: "Finite State Machines", array: templates.fsm }
 ];
 
 const allTemplateItems =

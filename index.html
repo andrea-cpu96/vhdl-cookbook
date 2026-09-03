@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="VHDL Cookbook: a lightweight, offline web-based VHDL template browser for FPGA and HDL development. Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, and more with a single click.">
-<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, digital design, hardware description language, VHDL snippets">
+<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, digital design, hardware description language, VHDL snippets">
 <meta name="author" content="VHDL Cookbook">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://andrea-cpu96.github.io/vhdl-cookbook/">
@@ -299,6 +299,209 @@ architecture rtl of my_entity is
 begin
 
 end architecture rtl;`,
+
+combinational: [
+
+    /* ── Multiplexing ───────────────────────── */
+
+    {
+        title: "2:1 Multiplexer",
+        group: "Multiplexing",
+        desc: "Selects between two inputs with a single-bit select, using a concurrent conditional assignment.",
+        diagram: null,
+        code: `-- 2:1 multiplexer (sel = '1' -> a, sel = '0' -> b)
+y <= a when sel = '1' else b;`
+    },
+    {
+        title: "4:1 Multiplexer",
+        group: "Multiplexing",
+        desc: "Selects one of four inputs with a 2-bit select using a selected signal assignment; others covers the remaining meta-values.",
+        diagram: null,
+        code: `-- 4:1 multiplexer with a 2-bit select
+with sel select
+    y <= d0 when "00",
+         d1 when "01",
+         d2 when "10",
+         d3 when others;   -- "11"`
+    },
+    {
+        title: "N:1 Multiplexer",
+        group: "Multiplexing",
+        desc: "Generic mux that indexes an array of inputs with a numeric select. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- N:1 multiplexer indexing an array of inputs
+-- type slv_array is array (natural range <>) of std_logic_vector(W-1 downto 0);
+-- signal d : slv_array(0 to N-1);   sel : std_logic_vector;
+y <= d(to_integer(unsigned(sel)));`
+    },
+    {
+        title: "1:4 Demultiplexer",
+        group: "Multiplexing",
+        desc: "Routes one input to the output chosen by a 2-bit select; every other output is driven low.",
+        diagram: null,
+        code: `-- 1:4 demultiplexer: din -> one output, the rest driven to '0'
+process(sel, din)
+begin
+    y0 <= '0'; y1 <= '0'; y2 <= '0'; y3 <= '0';   -- default all off
+    case sel is
+        when "00"   => y0 <= din;
+        when "01"   => y1 <= din;
+        when "10"   => y2 <= din;
+        when others => y3 <= din;
+    end case;
+end process;`
+    },
+    {
+        title: "Tri-State Buffer",
+        group: "Multiplexing",
+        desc: "Drives a bidirectional pad when output-enable is high and releases it to high-impedance otherwise. Use only at I/O pads, not for internal FPGA logic.",
+        diagram: null,
+        code: `-- Tri-state buffer for a bidirectional pad (oe = output enable)
+pad     <= data_out when oe = '1' else (others => 'Z');
+data_in <= pad;   -- always sample the pad`
+    },
+
+    /* ── Decoding & Encoding ────────────── */
+
+    {
+        title: "3:8 Decoder",
+        group: "Decoding & Encoding",
+        desc: "Drives a one-hot output selected by a 3-bit binary code. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- 3-to-8 one-hot decoder
+process(sel)
+begin
+    y <= (others => '0');
+    y(to_integer(unsigned(sel))) <= '1';   -- last assignment wins
+end process;`
+    },
+    {
+        title: "Priority Encoder",
+        group: "Decoding & Encoding",
+        desc: "Outputs the index of the highest-priority set bit; valid is low when no bit is set.",
+        diagram: null,
+        code: `-- 8-to-3 priority encoder (bit 7 = highest priority)
+process(d)
+begin
+    y     <= (others => '0');
+    valid <= '1';
+    if    d(7) = '1' then y <= "111";
+    elsif d(6) = '1' then y <= "110";
+    elsif d(5) = '1' then y <= "101";
+    elsif d(4) = '1' then y <= "100";
+    elsif d(3) = '1' then y <= "011";
+    elsif d(2) = '1' then y <= "010";
+    elsif d(1) = '1' then y <= "001";
+    elsif d(0) = '1' then y <= "000";
+    else                  valid <= '0';
+    end if;
+end process;`
+    },
+    {
+        title: "One-Hot to Binary",
+        group: "Decoding & Encoding",
+        desc: "Returns the index of the single set bit of a one-hot input. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- One-hot to binary encoder (assumes exactly one bit set)
+process(onehot)
+    variable idx : natural;
+begin
+    idx := 0;
+    for i in onehot'range loop
+        if onehot(i) = '1' then
+            idx := i;
+        end if;
+    end loop;
+    bin <= std_logic_vector(to_unsigned(idx, bin'length));
+end process;`
+    },
+
+    /* ── Comparators ────────────────────── */
+
+    {
+        title: "Equality Comparator",
+        group: "Comparators",
+        desc: "Asserts when two words are bit-for-bit equal, using the predefined vector equality.",
+        diagram: null,
+        code: `-- Equality comparator
+eq <= '1' when a = b else '0';`
+    },
+    {
+        title: "Magnitude Comparator",
+        group: "Comparators",
+        desc: "Produces less-than, equal and greater-than flags for unsigned operands; cast to signed for signed compares. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Magnitude comparator (unsigned; use signed() for signed operands)
+lt <= '1' when unsigned(a) < unsigned(b) else '0';
+eq <= '1' when a = b                     else '0';
+gt <= '1' when unsigned(a) > unsigned(b) else '0';`
+    },
+
+    /* ── Code Converters ────────────────── */
+
+    {
+        title: "Parity Generator / Checker",
+        group: "Code Converters",
+        desc: "Even-parity bit is the XOR of all data bits; the checker XORs it against the received parity to flag corruption. Uses the VHDL-2008 reduction operator.",
+        diagram: null,
+        code: `-- Even parity generator (odd parity = 'not' of this)
+parity <= xor data;                     -- VHDL-2008 unary reduction
+-- pre-2008: parity <= data(0) xor data(1) xor data(2) xor ...;
+
+-- Parity checker: err = '1' when the word was corrupted
+err <= (xor data) xor rx_parity;`
+    },
+    {
+        title: "Binary to Gray",
+        group: "Code Converters",
+        desc: "Converts binary to Gray code (g = b xor b shifted right by 1) so only one bit changes between consecutive values.",
+        diagram: null,
+        code: `-- Binary -> Gray:  g = b xor (b >> 1)
+gray <= bin xor ('0' & bin(bin'high downto 1));`
+    },
+    {
+        title: "Gray to Binary",
+        group: "Code Converters",
+        desc: "Reverses a Gray code back to binary with a prefix-XOR chain (b(i) = b(i+1) xor g(i)).",
+        diagram: null,
+        code: `-- Gray -> binary: MSB copies through, each lower bit XORs the bit above
+process(gray)
+    variable b : std_logic_vector(gray'range);
+begin
+    b(gray'high) := gray(gray'high);
+    for i in gray'high - 1 downto gray'low loop
+        b(i) := b(i + 1) xor gray(i);
+    end loop;
+    bin <= b;
+end process;`
+    },
+    {
+        title: "Seven-Segment Decoder",
+        group: "Code Converters",
+        desc: "Maps a hex digit (0-F) to a 7-segment pattern in segment order abcdefg; shown active-high (1 = lit) — invert for a common-anode display.",
+        diagram: null,
+        code: `-- Hex digit -> 7-segment, seg = a b c d e f g  (seg(6)=a ... seg(0)=g)
+-- active-HIGH (1 = lit); invert seg for a common-anode display
+with digit select
+    seg <= "1111110" when x"0",
+           "0110000" when x"1",
+           "1101101" when x"2",
+           "1111001" when x"3",
+           "0110011" when x"4",
+           "1011011" when x"5",
+           "1011111" when x"6",
+           "1110000" when x"7",
+           "1111111" when x"8",
+           "1111011" when x"9",
+           "1110111" when x"A",
+           "0011111" when x"B",
+           "1001110" when x"C",
+           "0111101" when x"D",
+           "1001111" when x"E",
+           "1000111" when others;   -- F`
+    }
+
+],
 
 register: [
     {
@@ -1515,6 +1718,7 @@ end process;`
 };
 
 const templateGroups = [
+    { name: "Combinational Logic", array: templates.combinational },
     { name: "Registers", array: templates.register },
     { name: "Shift Registers", array: templates.shift },
     { name: "Counters", array: templates.counter },

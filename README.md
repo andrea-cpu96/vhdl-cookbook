@@ -20,6 +20,12 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 ### Project Templates
 - VHDL Project Template
 
+### Combinational Logic
+- Multiplexers (2:1, 4:1, N:1), demux, tri-state buffer
+- Decoder (3:8), priority encoder, one-hot → binary
+- Comparators (equality, magnitude)
+- Parity, Gray ↔ binary, seven-segment decoder
+
 ### Sequential Logic
 - Register (D, set/preset, latches, T/JK/SR)
 - Shift Registers (SISO, SIPO, PISO, PIPO, universal, ring/Johnson, LFSR, barrel)
@@ -39,6 +45,20 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 
 ## Planned Templates
 
+### Arithmetic
+- Adder / Subtractor (carry in/out)
+- Adder-Subtractor (mode-selectable)
+- Accumulator
+- Multiplier (combinational + pipelined)
+- Multiply-Accumulate (MAC)
+- Saturating Adder / Absolute Value
+
+### Utilities
+- Debouncer
+- Synchronizer
+- Edge Detector
+- Clock Divider
+
 ### Interfaces
 - UART RX
 - UART TX
@@ -46,12 +66,6 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - SPI Slave
 - I2C Master
 - I2C Slave
-
-### Utilities
-- Debouncer
-- Synchronizer
-- Edge Detector
-- Clock Divider
 
 ### Verification
 - Testbench Template

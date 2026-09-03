@@ -23,14 +23,9 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 ### Sequential Logic
 - Register (D, set/preset, latches, T/JK/SR)
 - Shift Registers (SISO, SIPO, PISO, PIPO, universal, ring/Johnson, LFSR, barrel)
+- Counters (up, down, modulo-N, up/down, load/enable, saturating, Gray-code, BCD, one-shot timer, periodic tick)
 
 ## Planned Templates
-
-### Sequential Logic
-- Register with Enable
-- Counter
-- Up/Down Counter
-- Timer
 
 ### Finite State Machines
 - Moore FSM

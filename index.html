@@ -886,12 +886,286 @@ begin
 end process;`
     }
 
+],
+
+counter: [
+
+    /* ── Basic Counters ──────────────────────────── */
+
+    {
+        title: "Free-Running Up Counter",
+        group: "Basic Counters",
+        desc: "Increments by 1 every clock cycle and wraps to zero on overflow. Requires ieee.numeric_std.all.",
+        diagram: { inputs: [], reset: "sync", caption: "N-bit up counter" },
+        code: `-- N-bit free-running up counter (wraps on overflow)
+signal cnt : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        else
+            cnt <= cnt + 1;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(cnt);`
+    },
+    {
+        title: "Down Counter",
+        group: "Basic Counters",
+        desc: "Decrements by 1 every clock cycle and wraps to all-ones on underflow. Requires ieee.numeric_std.all.",
+        diagram: { inputs: [], reset: "sync", caption: "N-bit down counter" },
+        code: `-- N-bit free-running down counter (wraps on underflow)
+signal cnt : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        else
+            cnt <= cnt - 1;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(cnt);`
+    },
+    {
+        title: "Modulo-N (Wraparound) Counter",
+        group: "Basic Counters",
+        desc: "Counts 0 .. MOD_VAL-1 then wraps back to zero, so the modulus need not be a power of two. Requires ieee.numeric_std.all.",
+        diagram: { inputs: [], reset: "sync", caption: "Modulo-N counter" },
+        code: `-- Counts 0 .. MOD_VAL-1 then wraps (MOD_VAL need not be a power of 2)
+-- (named MOD_VAL because MOD is a reserved VHDL operator)
+signal cnt : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        elsif cnt = MOD_VAL - 1 then
+            cnt <= (others => '0');
+        else
+            cnt <= cnt + 1;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(cnt);`
+    },
+
+    /* ── Up/Down ──────────────────────────────────── */
+
+    {
+        title: "Up/Down Counter",
+        group: "Up/Down",
+        desc: "Counts up when dir is high and down when dir is low; wraps at either end. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["DIR"], reset: "sync", caption: "Up/down counter" },
+        code: `-- N-bit up/down counter
+-- dir : '1' = count up, '0' = count down
+signal cnt : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        elsif dir = '1' then
+            cnt <= cnt + 1;
+        else
+            cnt <= cnt - 1;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(cnt);`
+    },
+    {
+        title: "Up/Down Counter with Load + Enable",
+        group: "Up/Down",
+        desc: "Adds a parallel load and clock enable to the up/down counter — the pattern used by address generators and PWM duty-cycle counters. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["D", "DIR"], enable: true, reset: "sync", caption: "Up/down counter with load + enable" },
+        code: `-- N-bit up/down counter with parallel load and clock enable
+-- load takes priority over count; dir selects direction while en = '1'
+signal cnt : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        elsif load = '1' then
+            cnt <= unsigned(d);
+        elsif en = '1' then
+            if dir = '1' then
+                cnt <= cnt + 1;
+            else
+                cnt <= cnt - 1;
+            end if;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(cnt);`
+    },
+    {
+        title: "Saturating Up/Down Counter",
+        group: "Up/Down",
+        desc: "Counts up or down but clamps at the limits instead of wrapping — holds at all-ones (max) and at zero (min). Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["DIR"], enable: true, reset: "sync", caption: "Saturating up/down counter" },
+        code: `-- N-bit saturating up/down counter (clamps, never wraps)
+-- dir : '1' = up, '0' = down; holds at max / min at the limits
+constant CMAX : unsigned(N-1 downto 0) := (others => '1');
+signal   cnt  : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        elsif en = '1' then
+            if dir = '1' then
+                if cnt /= CMAX then       -- hold at max
+                    cnt <= cnt + 1;
+                end if;
+            else
+                if cnt /= 0 then          -- hold at min
+                    cnt <= cnt - 1;
+                end if;
+            end if;
+        end if;
+    end if;
+end process;
+
+q <= std_logic_vector(cnt);`
+    },
+
+    /* ── Timers ───────────────────────────────────── */
+
+    {
+        title: "One-Shot Countdown Timer",
+        group: "Timers",
+        desc: "Loads a count value on start and counts down to zero, asserting done for one clock — the pattern used for retry/timeout delays. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["D", "START"], out: "DONE", reset: "sync", caption: "One-shot countdown timer" },
+        code: `-- Loads d on start, counts down to zero, pulses done for 1 cycle
+signal cnt  : unsigned(N-1 downto 0);
+signal busy : std_logic;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt  <= (others => '0');
+            busy <= '0';
+        elsif start = '1' then
+            cnt  <= unsigned(d);
+            busy <= '1';
+        elsif busy = '1' then
+            if cnt = 0 then
+                busy <= '0';
+            else
+                cnt <= cnt - 1;
+            end if;
+        end if;
+    end if;
+end process;
+
+done <= '1' when (busy = '1' and cnt = 0) else '0';`
+    },
+    {
+        title: "Free-Running Tick Generator",
+        group: "Timers",
+        desc: "Counts up to a fixed TIMEOUT value then pulses tick for one clock and restarts — used to derive slower periodic events (e.g. a 1 ms heartbeat) from a fast system clock. Requires ieee.numeric_std.all.",
+        diagram: { inputs: [], out: "TICK", reset: "sync", caption: "Free-running tick generator" },
+        code: `-- Pulses tick for one clock every TIMEOUT cycles
+signal cnt : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            cnt <= (others => '0');
+        elsif cnt = TIMEOUT - 1 then
+            cnt <= (others => '0');
+        else
+            cnt <= cnt + 1;
+        end if;
+    end if;
+end process;
+
+tick <= '1' when cnt = TIMEOUT - 1 else '0';`
+    },
+
+    /* ── Encoded ─────────────────────────────────── */
+
+    {
+        title: "Gray-Code Counter",
+        group: "Encoded",
+        desc: "Counts so that exactly one output bit changes per step — the safe encoding for crossing a counter value between clock domains (e.g. async-FIFO pointers). Requires ieee.numeric_std.all.",
+        diagram: { inputs: [], out: "GRAY", reset: "sync", caption: "Gray-code counter" },
+        code: `-- N-bit Gray-code counter: keep a binary counter, convert to Gray
+-- g = b xor (b >> 1)  ->  only one bit changes between consecutive values
+signal bin : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            bin <= (others => '0');
+        else
+            bin <= bin + 1;
+        end if;
+    end if;
+end process;
+
+gray <= std_logic_vector(bin xor shift_right(bin, 1));`
+    },
+    {
+        title: "BCD Counter — Cascaded Decades",
+        group: "Encoded",
+        desc: "Two-digit binary-coded-decimal counter (00..99): each 4-bit digit counts 0..9 and ripples a carry to the next — chain more digits the same way. Requires ieee.numeric_std.all.",
+        diagram: { inputs: [], enable: true, out: "BCD", reset: "sync", caption: "Two-digit BCD counter (00..99)" },
+        code: `-- Two-digit BCD counter: ones and tens each count 0..9
+-- carry chains from ones -> tens (add more digits the same way)
+signal ones, tens : unsigned(3 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            ones <= (others => '0');
+            tens <= (others => '0');
+        elsif en = '1' then
+            if ones = 9 then
+                ones <= (others => '0');
+                if tens = 9 then
+                    tens <= (others => '0');
+                else
+                    tens <= tens + 1;
+                end if;
+            else
+                ones <= ones + 1;
+            end if;
+        end if;
+    end if;
+end process;
+
+-- packed 8-bit BCD output (tens : ones)
+bcd <= std_logic_vector(tens) & std_logic_vector(ones);`
+    }
+
 ]
 };
 
 const templateGroups = [
     { name: "Registers", array: templates.register },
-    { name: "Shift Registers", array: templates.shift }
+    { name: "Shift Registers", array: templates.shift },
+    { name: "Counters", array: templates.counter }
 ];
 
 const allTemplateItems =

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="VHDL Cookbook: a lightweight, offline web-based VHDL template browser for FPGA and HDL development. Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, and more with a single click.">
-<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, synchronizer, debouncer, clock divider, digital design, hardware description language, VHDL snippets">
+<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, synchronizer, debouncer, clock divider, testbench, simulation, verification, digital design, hardware description language, VHDL snippets">
 <meta name="author" content="VHDL Cookbook">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://andrea-cpu96.github.io/vhdl-cookbook/">
@@ -2094,6 +2094,128 @@ begin
 end process;`
     }
 
+],
+
+verification: [
+
+    /* ── Testbench ──────────────────────── */
+
+    {
+        title: "Testbench Skeleton",
+        group: "Testbench",
+        desc: "Complete non-synthesizable testbench: port-less entity, DUT instantiation, clock, reset and a stimulus process with an assertion.",
+        diagram: null,
+        code: `-- Non-synthesizable testbench skeleton
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity tb_my_entity is
+end entity;                       -- a testbench has no ports
+
+architecture sim of tb_my_entity is
+    constant CLK_PERIOD : time := 10 ns;
+    signal clk : std_logic := '0';
+    signal rst : std_logic := '1';
+    signal d   : std_logic_vector(7 downto 0) := (others => '0');
+    signal q   : std_logic_vector(7 downto 0);
+begin
+    dut : entity work.my_entity
+        port map (clk => clk, rst => rst, d => d, q => q);
+
+    clk <= not clk after CLK_PERIOD / 2;   -- free-running clock
+
+    stim : process
+    begin
+        wait for 2 * CLK_PERIOD;
+        rst <= '0';                        -- release reset
+
+        d <= x"A5";
+        wait until rising_edge(clk);
+        assert q = x"A5" report "unexpected q" severity error;
+
+        wait;                              -- end of test
+    end process;
+end architecture;`
+    },
+
+    /* ── Clock & Reset ────────────────── */
+
+    {
+        title: "Clock Generator",
+        group: "Clock & Reset",
+        desc: "Generates a simulation clock. The concurrent form is simplest; the stoppable process form lets 'run -all' terminate on its own.",
+        diagram: null,
+        code: `-- Simulation clock
+constant CLK_PERIOD : time := 10 ns;   -- 100 MHz
+signal   clk        : std_logic := '0';
+
+-- simplest: free-running (runs until the simulator halts)
+clk <= not clk after CLK_PERIOD / 2;
+
+-- stoppable variant (lets the run finish when sim_done = true):
+-- process begin
+--     while not sim_done loop
+--         clk <= not clk;
+--         wait for CLK_PERIOD / 2;
+--     end loop;
+--     wait;
+-- end process;`
+    },
+    {
+        title: "Reset Generator",
+        group: "Clock & Reset",
+        desc: "One-shot reset: hold asserted for a few clocks at time zero, then release and stay low for the rest of the run.",
+        diagram: null,
+        code: `-- Reset generator: assert at t=0, release after a few cycles
+signal rst : std_logic := '1';
+
+reset_gen : process
+begin
+    rst <= '1';
+    wait for 5 * CLK_PERIOD;
+    rst <= '0';
+    wait;                          -- release and hold forever
+end process;`
+    },
+
+    /* ── Stimulus & Checking ───────────── */
+
+    {
+        title: "Stimulus Process",
+        group: "Stimulus & Checking",
+        desc: "Drives inputs over time: wait for reset to release, align to the clock, apply vectors, then suspend.",
+        diagram: null,
+        code: `-- Stimulus: apply input vectors in sequence, then stop
+stim : process
+begin
+    wait until rst = '0';          -- wait for reset release
+    wait until rising_edge(clk);
+
+    a <= x"01";
+    b <= x"02";
+    wait until rising_edge(clk);
+
+    a <= x"10";
+    wait until rising_edge(clk);
+
+    report "stimulus complete" severity note;
+    wait;                          -- suspend the process
+end process;`
+    },
+    {
+        title: "Self-Checking Assertion",
+        group: "Stimulus & Checking",
+        desc: "Compares a DUT output against the expected value and reports on mismatch. Severity order: note < warning < error < failure (failure stops the sim). to_hstring needs VHDL-2008.",
+        diagram: null,
+        code: `-- Self-checking: place after applying inputs and waiting for the result
+wait until rising_edge(clk);
+assert q = expected
+    report "mismatch: q=" & to_hstring(q) &
+           " exp=" & to_hstring(expected)
+    severity error;`
+    }
+
 ]
 };
 
@@ -2105,7 +2227,8 @@ const templateGroups = [
     { name: "Counters", array: templates.counter },
     { name: "Finite State Machines", array: templates.fsm },
     { name: "Memory", array: templates.memory },
-    { name: "Utilities", array: templates.utilities }
+    { name: "Utilities", array: templates.utilities },
+    { name: "Verification", array: templates.verification }
 ];
 
 const allTemplateItems =

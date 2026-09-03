@@ -54,6 +54,11 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - Edge detector (rising, falling, any)
 - Clock divider (÷2, ÷N, clock-enable)
 
+### Verification
+- Testbench skeleton
+- Clock & reset generators
+- Stimulus process, self-checking assertions
+
 ## Planned Templates
 
 ### Interfaces
@@ -63,12 +68,6 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - SPI Slave
 - I2C Master
 - I2C Slave
-
-### Verification
-- Testbench Template
-- Clock Generator
-- Reset Generator
-- Stimulus Process
 
 ## Screenshot
 

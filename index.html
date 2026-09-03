@@ -86,6 +86,12 @@ body {
     transform: rotate(-90deg);
 }
 
+.template-group-header.nested {
+    font-weight: normal;
+    font-size: 14px;
+    color: #cbd5e1;
+}
+
 .template-subitems {
     margin: 0 0 8px 10px;
     padding-left: 8px;
@@ -2221,18 +2227,29 @@ assert q = expected
 
 const templateGroups = [
     { name: "Combinational Logic", array: templates.combinational },
+    {
+        name: "Sequential Logic",
+        children: [
+            { name: "Registers", array: templates.register },
+            { name: "Shift Registers", array: templates.shift },
+            { name: "Counters", array: templates.counter },
+            { name: "Finite State Machines", array: templates.fsm }
+        ]
+    },
     { name: "Arithmetic", array: templates.arithmetic },
-    { name: "Registers", array: templates.register },
-    { name: "Shift Registers", array: templates.shift },
-    { name: "Counters", array: templates.counter },
-    { name: "Finite State Machines", array: templates.fsm },
     { name: "Memory", array: templates.memory },
     { name: "Utilities", array: templates.utilities },
     { name: "Verification", array: templates.verification }
 ];
 
-const allTemplateItems =
-    templateGroups.reduce((acc, group) => acc.concat(group.array), []);
+// Flattened list of every variant, used by the search filter.
+function collectItems(groups)
+{
+    return groups.reduce((acc, g) =>
+        acc.concat(g.children ? collectItems(g.children) : g.array), []);
+}
+
+const allTemplateItems = collectItems(templateGroups);
 
 function buildSidebar()
 {
@@ -2245,43 +2262,54 @@ function buildSidebar()
     projectItem.onclick = () => loadProject(projectItem);
     container.appendChild(projectItem);
 
-    templateGroups.forEach(tg =>
-    {
-        const header = document.createElement("div");
-        header.className = "template-group-header collapsed";
-        header.innerHTML =
-            `<span>${tg.name}</span><span class="caret">▾</span>`;
-        container.appendChild(header);
-
-        const sub = document.createElement("div");
-        sub.className = "template-subitems collapsed";
-        container.appendChild(sub);
-
-        header.onclick = () =>
-        {
-            header.classList.toggle("collapsed");
-            sub.classList.toggle("collapsed");
-        };
-
-        const groups = [];
-        tg.array.forEach(item =>
-        {
-            if (!groups.includes(item.group))
-                groups.push(item.group);
-        });
-
-        groups.forEach(group =>
-        {
-            const item = document.createElement("div");
-            item.className = "template-subitem";
-            item.textContent = group;
-            item.dataset.group = group;
-            item.onclick = () => loadGroup(group, item, tg.array);
-            sub.appendChild(item);
-        });
-    });
+    templateGroups.forEach(tg => buildCategory(container, tg, false));
 
     return projectItem;
+}
+
+function buildCategory(container, tg, nested)
+{
+    const header = document.createElement("div");
+    header.className =
+        "template-group-header collapsed" + (nested ? " nested" : "");
+    header.innerHTML =
+        `<span>${tg.name}</span><span class="caret">▾</span>`;
+    container.appendChild(header);
+
+    const sub = document.createElement("div");
+    sub.className = "template-subitems collapsed";
+    container.appendChild(sub);
+
+    header.onclick = () =>
+    {
+        header.classList.toggle("collapsed");
+        sub.classList.toggle("collapsed");
+    };
+
+    if (tg.children)
+        tg.children.forEach(child => buildCategory(sub, child, true));
+    else
+        buildGroupSubitems(sub, tg.array);
+}
+
+function buildGroupSubitems(container, array)
+{
+    const groups = [];
+    array.forEach(item =>
+    {
+        if (!groups.includes(item.group))
+            groups.push(item.group);
+    });
+
+    groups.forEach(group =>
+    {
+        const item = document.createElement("div");
+        item.className = "template-subitem";
+        item.textContent = group;
+        item.dataset.group = group;
+        item.onclick = () => loadGroup(group, item, array);
+        container.appendChild(item);
+    });
 }
 
 function setActive(element)

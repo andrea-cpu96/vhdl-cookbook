@@ -373,7 +373,7 @@ data_in <= pad;   -- always sample the pad`
         title: "3:8 Decoder",
         group: "Decoding & Encoding",
         desc: "Drives a one-hot output selected by a 3-bit binary code. Requires ieee.numeric_std.all.",
-        diagram: { clk: "none", bit: true, inputs: ["sel"], out: "y", buses: ["sel", "y"], caption: "3:8 decoder" },
+        diagram: { trapezoid: "decoder", inputs: ["sel"], out: "y", buses: ["sel", "y"], caption: "3:8 decoder" },
         code: `-- 3-to-8 one-hot decoder
 process(sel)
 begin
@@ -382,10 +382,24 @@ begin
 end process;`
     },
     {
+        title: "3:8 Decoder with Enable",
+        group: "Decoding & Encoding",
+        desc: "One-hot decoder gated by an enable: every output is driven low while en = '0'. Requires ieee.numeric_std.all.",
+        diagram: { trapezoid: "decoder", inputs: ["sel", "en"], out: "y", buses: ["sel", "y"], caption: "3:8 decoder + enable" },
+        code: `-- 3-to-8 one-hot decoder with enable (all outputs '0' when disabled)
+process(sel, en)
+begin
+    y <= (others => '0');
+    if en = '1' then
+        y(to_integer(unsigned(sel))) <= '1';
+    end if;
+end process;`
+    },
+    {
         title: "Priority Encoder",
         group: "Decoding & Encoding",
         desc: "Outputs the index of the highest-priority set bit; valid is low when no bit is set.",
-        diagram: { clk: "none", bit: true, inputs: ["d"], outputs: ["y", "valid"], buses: ["d", "y"], caption: "8:3 priority encoder" },
+        diagram: { trapezoid: "encoder", inputs: ["d"], outputs: ["y", "valid"], buses: ["d", "y"], caption: "8:3 priority encoder" },
         code: `-- 8-to-3 priority encoder (bit 7 = highest priority)
 process(d)
 begin
@@ -407,7 +421,7 @@ end process;`
         title: "One-Hot to Binary",
         group: "Decoding & Encoding",
         desc: "Returns the index of the single set bit of a one-hot input. Requires ieee.numeric_std.all.",
-        diagram: { clk: "none", bit: true, inputs: ["onehot"], out: "bin", buses: ["onehot", "bin"], caption: "One-hot to binary" },
+        diagram: { trapezoid: "encoder", inputs: ["onehot"], out: "bin", buses: ["onehot", "bin"], caption: "One-hot to binary" },
         code: `-- One-hot to binary encoder (assumes exactly one bit set)
 process(onehot)
     variable idx : natural;
@@ -1519,11 +1533,11 @@ fsm: [
     {
         title: "Moore FSM — Two-Process",
         group: "Moore",
-        desc: "Canonical two-process Moore machine (state register + combinational next-state/output). Outputs depend on the current state only. Example: a '11' sequence detector.",
-        diagram: { inputs: ["X"], out: "Y", reset: "sync", bit: true, caption: "Moore FSM — '11' detector" },
-        code: `-- Two-process Moore "11" detector: y = '1' after two consecutive 1s
--- outputs depend on the CURRENT STATE only
-type state_t is (S0, S1, S2);        -- zero, one, two+ ones seen
+        desc: "Canonical two-process Moore machine: a clocked state register plus combinational next-state and output logic. Outputs depend on the current state only — swap in your own states, transitions and outputs.",
+        diagram: { fsm: "moore", caption: "Moore FSM (two-process)" },
+        code: `-- Two-process Moore FSM: state register + combinational next-state/output.
+-- Outputs depend on the CURRENT STATE only.
+type state_t is (IDLE, S1, S2);       -- define your own states
 signal state, nstate : state_t;
 
 -- 1) state register (sequential)
@@ -1531,26 +1545,23 @@ process(clk)
 begin
     if rising_edge(clk) then
         if rst = '1' then
-            state <= S0;
+            state <= IDLE;            -- reset to a known state
         else
             state <= nstate;
         end if;
     end if;
 end process;
 
--- 2) next-state + Moore output (combinational)
-process(state, x)
+-- 2) next-state + Moore output logic (combinational)
+process(state, x)                     -- sensitivity: state + all inputs
 begin
-    nstate <= state;                 -- default: hold (prevents latches)
-    y      <= '0';
+    nstate <= state;                  -- default: hold (prevents latches)
+    y      <= '0';                    -- default outputs (drive per state)
     case state is
-        when S0 =>
-            if x = '1' then nstate <= S1; else nstate <= S0; end if;
-        when S1 =>
-            if x = '1' then nstate <= S2; else nstate <= S0; end if;
-        when S2 =>
-            y <= '1';                -- output tied to state S2
-            if x = '1' then nstate <= S2; else nstate <= S0; end if;
+        when IDLE => if x = '1' then nstate <= S1; end if;
+        when S1   => if x = '1' then nstate <= S2; end if;
+        when S2   => y <= '1';        -- Moore output: function of state
+                     nstate <= IDLE;
     end case;
 end process;`
     },
@@ -1560,11 +1571,10 @@ end process;`
     {
         title: "Mealy FSM — Two-Process",
         group: "Mealy",
-        desc: "Two-process Mealy machine: outputs depend on the state AND the current inputs, so they react a cycle earlier and often need fewer states. Same '11' detector in two states.",
-        diagram: { inputs: ["X"], out: "Y", reset: "sync", bit: true, caption: "Mealy FSM — '11' detector" },
-        code: `-- Two-process Mealy "11" detector: y = '1' when a 1 arrives while in S1
--- outputs depend on the STATE and the INPUT (one fewer state than Moore)
-type state_t is (S0, S1);            -- zero or one consecutive ones seen
+        desc: "Two-process Mealy machine: outputs depend on the state AND the current inputs, so they react a cycle earlier and often need fewer states than Moore. Assign outputs inside the input branches.",
+        diagram: { fsm: "mealy", caption: "Mealy FSM (two-process)" },
+        code: `-- Two-process Mealy FSM: outputs depend on STATE and INPUTS.
+type state_t is (IDLE, S1);           -- define your own states
 signal state, nstate : state_t;
 
 -- 1) state register (sequential)
@@ -1572,27 +1582,27 @@ process(clk)
 begin
     if rising_edge(clk) then
         if rst = '1' then
-            state <= S0;
+            state <= IDLE;
         else
             state <= nstate;
         end if;
     end if;
 end process;
 
--- 2) next-state + Mealy output (combinational)
-process(state, x)
+-- 2) next-state + Mealy output logic (combinational)
+process(state, x)                     -- sensitivity: state + all inputs
 begin
-    nstate <= state;                 -- default: hold
-    y      <= '0';
+    nstate <= state;                  -- default: hold (prevents latches)
+    y      <= '0';                    -- default output
     case state is
-        when S0 =>
-            if x = '1' then nstate <= S1; else nstate <= S0; end if;
+        when IDLE =>
+            if x = '1' then nstate <= S1; end if;
         when S1 =>
             if x = '1' then
+                y      <= '1';        -- Mealy output: state AND input
                 nstate <= S1;
-                y      <= '1';       -- depends on state AND input
             else
-                nstate <= S0;
+                nstate <= IDLE;
             end if;
     end case;
 end process;`
@@ -1604,13 +1614,13 @@ end process;`
         title: "Moore FSM — Registered Outputs",
         group: "Coding Styles",
         desc: "Three-process Moore machine whose outputs are registered for glitch-free timing. Decoding them from the next state keeps them aligned with the state (no extra latency).",
-        diagram: { inputs: ["START", "FIN"], out: "BUSY", reset: "sync", bit: true, caption: "Moore FSM with registered outputs" },
+        diagram: { fsm: "moore", caption: "Moore FSM (registered outputs)" },
         code: `-- Three-process Moore FSM with glitch-free REGISTERED outputs.
 -- Outputs are decoded from the NEXT state so they still line up with 'state'.
-type state_t is (IDLE, RUN, DONE);
+type state_t is (IDLE, S1, S2);       -- define your own states
 signal state, nstate : state_t;
 
--- 1) state register
+-- 1) state register (sequential)
 process(clk)
 begin
     if rising_edge(clk) then
@@ -1623,29 +1633,26 @@ begin
 end process;
 
 -- 2) next-state logic (combinational)
-process(state, start, fin)
+process(state, x)                     -- sensitivity: state + all inputs
 begin
-    nstate <= state;                 -- default: hold
+    nstate <= state;                  -- default: hold
     case state is
-        when IDLE => if start = '1' then nstate <= RUN;  end if;
-        when RUN  => if fin   = '1' then nstate <= DONE; end if;
-        when DONE =>                      nstate <= IDLE;
+        when IDLE => if x = '1' then nstate <= S1; end if;
+        when S1   => if x = '1' then nstate <= S2; end if;
+        when S2   =>                     nstate <= IDLE;
     end case;
 end process;
 
--- 3) output register: decode from the NEXT state
+-- 3) output register: decode Moore outputs from the NEXT state
 process(clk)
 begin
     if rising_edge(clk) then
         if rst = '1' then
-            busy <= '0';
-            done <= '0';
+            y <= '0';
         else
-            busy <= '0';             -- defaults each cycle
-            done <= '0';
+            y <= '0';                 -- default each cycle
             case nstate is
-                when RUN    => busy <= '1';
-                when DONE   => done <= '1';
+                when S2     => y <= '1';   -- registered output, one per state
                 when others => null;
             end case;
         end if;
@@ -1656,15 +1663,16 @@ end process;`
         title: "Safe FSM — Illegal-State Recovery",
         group: "Coding Styles",
         desc: "Encodes the states explicitly so unused codes are representable, then uses when others to force recovery to IDLE if the machine ever lands in an illegal state (glitch or SEU).",
-        diagram: { inputs: ["START", "FIN"], out: "BUSY", reset: "sync", bit: true, caption: "Safe FSM (illegal-state recovery)" },
-        code: `-- Safe FSM: explicit encoding makes illegal codes reachable, and
--- 'when others' returns the machine to a known state after an upset.
+        diagram: { fsm: "moore", caption: "Safe FSM (illegal-state recovery)" },
+        code: `-- Safe FSM: explicit state encoding makes illegal codes representable, and
+-- 'when others' returns the machine to a known state after an upset (glitch/SEU).
 subtype state_t is std_logic_vector(1 downto 0);
 constant IDLE : state_t := "00";
-constant RUN  : state_t := "01";
-constant DONE : state_t := "10";     -- "11" is unused / illegal
+constant S1   : state_t := "01";
+constant S2   : state_t := "10";      -- "11" is unused / illegal
 signal state, nstate : state_t;
 
+-- 1) state register (sequential)
 process(clk)
 begin
     if rising_edge(clk) then
@@ -1676,20 +1684,21 @@ begin
     end if;
 end process;
 
-process(state, start, fin)
+-- 2) next-state + output logic (combinational)
+process(state, x)                     -- sensitivity: state + all inputs
 begin
-    nstate <= state;
-    busy   <= '0';
+    nstate <= state;                  -- default: hold
+    y      <= '0';                    -- default outputs
     case state is
         when IDLE =>
-            if start = '1' then nstate <= RUN; end if;
-        when RUN =>
-            busy <= '1';
-            if fin = '1' then nstate <= DONE; end if;
-        when DONE =>
+            if x = '1' then nstate <= S1; end if;
+        when S1 =>
+            y <= '1';
+            if x = '1' then nstate <= S2; end if;
+        when S2 =>
             nstate <= IDLE;
         when others =>
-            nstate <= IDLE;          -- recover from any illegal code
+            nstate <= IDLE;           -- recover from any illegal code
     end case;
 end process;`
     },
@@ -2350,8 +2359,161 @@ function loadGroup(group, element, items)
     setActive(element);
 }
 
+function createFsmDiagram(d)
+{
+    const wire = "#1e293b";
+    const accent = "#2563eb";
+    const fill = "#eff6ff";
+    const label = "#1e293b";
+    const note = "#64748b";
+
+    const cx = 140, cy = 74, r = 46;             // combinational-logic cloud
+    const rx = 50, ry = 182, rw = 180, rh = 44;  // state register
+    const sx = 111, nx = 169, linkY = 110;       // feedback / next-state links
+
+    const moore = d.fsm === "moore";             // Moore = outputs from state only
+    const rRight = rx + rw;
+    const vbW = moore ? 340 : 280;
+
+    const svg = [];
+
+    // Combinational logic (circle)
+    svg.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${accent}" stroke-width="2"/>`);
+    svg.push(`<text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="11" fill="${label}" font-family="Arial">next-state</text>`);
+    svg.push(`<text x="${cx}" y="${cy + 11}" text-anchor="middle" font-size="11" fill="${label}" font-family="Arial">${moore ? "logic" : "&amp; output"}</text>`);
+
+    // State register (box)
+    svg.push(`<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="6" fill="${fill}" stroke="${accent}" stroke-width="2"/>`);
+    svg.push(`<text x="${cx}" y="${ry + rh / 2 + 4}" text-anchor="middle" font-size="12" fill="${label}" font-family="Arial">state register</text>`);
+
+    // inputs -> logic
+    svg.push(`<line x1="14" y1="${cy}" x2="${cx - r}" y2="${cy}" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<polyline points="${cx - r - 8},${cy - 5} ${cx - r},${cy} ${cx - r - 8},${cy + 5}" fill="none" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<text x="14" y="${cy - 8}" text-anchor="start" font-size="12" fill="${label}" font-family="Arial">inputs</text>`);
+
+    // Mealy: outputs come from the combinational logic (inputs + state)
+    if (!moore)
+    {
+        svg.push(`<line x1="${cx + r}" y1="${cy}" x2="266" y2="${cy}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<polyline points="258,${cy - 5} 266,${cy} 258,${cy + 5}" fill="none" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="266" y="${cy - 8}" text-anchor="end" font-size="12" fill="${label}" font-family="Arial">outputs</text>`);
+    }
+
+    // next state: logic -> register (down)
+    svg.push(`<line x1="${nx}" y1="${linkY}" x2="${nx}" y2="${ry}" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<polyline points="${nx - 5},${ry - 8} ${nx},${ry} ${nx + 5},${ry - 8}" fill="none" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<text x="${nx + 6}" y="${(linkY + ry) / 2 + 4}" text-anchor="start" font-size="11" fill="${note}" font-family="Arial">next</text>`);
+
+    // current state: register -> logic (up, feedback)
+    svg.push(`<line x1="${sx}" y1="${ry}" x2="${sx}" y2="${linkY}" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<polyline points="${sx - 5},${linkY + 8} ${sx},${linkY} ${sx + 5},${linkY + 8}" fill="none" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<text x="${sx - 6}" y="${(linkY + ry) / 2 + 4}" text-anchor="end" font-size="11" fill="${note}" font-family="Arial">state</text>`);
+
+    // clk into register
+    const clkY = ry + rh / 2;
+    svg.push(`<line x1="16" y1="${clkY}" x2="${rx}" y2="${clkY}" stroke="${wire}" stroke-width="2"/>`);
+    svg.push(`<polyline points="${rx},${clkY - 7} ${rx + 12},${clkY} ${rx},${clkY + 7}" fill="none" stroke="${accent}" stroke-width="2"/>`);
+    svg.push(`<text x="14" y="${clkY + 4}" text-anchor="end" font-size="12" fill="${label}" font-family="Arial">clk</text>`);
+
+    // Moore: outputs come from the state via a separate output-logic block
+    if (moore)
+    {
+        const obx = 252, oby = 188, obw = 62, obh = 32;
+        svg.push(`<line x1="${rRight}" y1="${clkY}" x2="${obx}" y2="${clkY}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<rect x="${obx}" y="${oby}" width="${obw}" height="${obh}" rx="6" fill="${fill}" stroke="${accent}" stroke-width="2"/>`);
+        svg.push(`<text x="${obx + obw / 2}" y="${clkY - 3}" text-anchor="middle" font-size="10" fill="${label}" font-family="Arial">output</text>`);
+        svg.push(`<text x="${obx + obw / 2}" y="${clkY + 9}" text-anchor="middle" font-size="10" fill="${label}" font-family="Arial">logic</text>`);
+        svg.push(`<line x1="${obx + obw}" y1="${clkY}" x2="${vbW - 8}" y2="${clkY}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<polyline points="${vbW - 16},${clkY - 5} ${vbW - 8},${clkY} ${vbW - 16},${clkY + 5}" fill="none" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="${vbW - 8}" y="${clkY - 8}" text-anchor="end" font-size="12" fill="${label}" font-family="Arial">outputs</text>`);
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "diagram";
+    wrap.innerHTML =
+        `<svg viewBox="0 10 ${vbW} 230" xmlns="http://www.w3.org/2000/svg" `
+        + `role="img" aria-label="${d.caption || "FSM"} schematic diagram">`
+        + svg.join("")
+        + `</svg>`;
+
+    const cap = document.createElement("div");
+    cap.className = "diagram-cap";
+    cap.textContent = d.caption || "Finite state machine";
+    wrap.appendChild(cap);
+
+    return wrap;
+}
+
+function createCoderDiagram(d)
+{
+    const wire = "#1e293b";
+    const accent = "#2563eb";
+    const fill = "#eff6ff";
+    const label = "#1e293b";
+
+    const decoder = d.trapezoid === "decoder";
+    const xL = 100, xR = 200, yc = 85, hn = 22, hw = 52;
+    const hL = decoder ? hn : hw;         // left-edge half-height
+    const hR = decoder ? hw : hn;         // right-edge half-height
+
+    const inputs = d.inputs || ["in"];
+    const outputs = d.outputs || [d.out || "out"];
+    const buses = d.buses || [];
+
+    const spread = (n, h) =>
+    {
+        if (n === 1) return [yc];
+        const span = Math.min(2 * h - 16, (n - 1) * 24);
+        return Array.from({ length: n }, (_, i) => yc - span / 2 + i * (span / (n - 1)));
+    };
+
+    const svg = [];
+
+    // Trapezoid body: widens toward the outputs (decoder) or the inputs (encoder)
+    svg.push(`<polygon points="${xL},${yc - hL} ${xR},${yc - hR} ${xR},${yc + hR} ${xL},${yc + hL}" `
+        + `fill="${fill}" stroke="${accent}" stroke-width="2"/>`);
+
+    // Left-side inputs
+    spread(inputs.length, hL).forEach((y, i) =>
+    {
+        const name = inputs[i];
+        svg.push(`<line x1="48" y1="${y}" x2="${xL}" y2="${y}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="42" y="${y + 4}" text-anchor="end" font-size="13" fill="${label}" font-family="Arial">${name}</text>`);
+        if (buses.includes(name))
+            svg.push(`<line x1="70" y1="${y - 6}" x2="78" y2="${y + 6}" stroke="${wire}" stroke-width="1.5"/>`);
+    });
+
+    // Right-side outputs
+    spread(outputs.length, hR).forEach((y, i) =>
+    {
+        const name = outputs[i];
+        svg.push(`<line x1="${xR}" y1="${y}" x2="252" y2="${y}" stroke="${wire}" stroke-width="2"/>`);
+        svg.push(`<text x="258" y="${y + 4}" text-anchor="start" font-size="13" fill="${label}" font-family="Arial">${name}</text>`);
+        if (buses.includes(name))
+            svg.push(`<line x1="222" y1="${y - 6}" x2="230" y2="${y + 6}" stroke="${wire}" stroke-width="1.5"/>`);
+    });
+
+    const wrap = document.createElement("div");
+    wrap.className = "diagram";
+    wrap.innerHTML =
+        `<svg viewBox="0 15 300 140" xmlns="http://www.w3.org/2000/svg" `
+        + `role="img" aria-label="${d.caption || "Coder"} diagram">`
+        + svg.join("")
+        + `</svg>`;
+
+    const cap = document.createElement("div");
+    cap.className = "diagram-cap";
+    cap.textContent = d.caption || "Decoder / encoder";
+    wrap.appendChild(cap);
+
+    return wrap;
+}
+
 function createDiagram(d)
 {
+    if (d.fsm) return createFsmDiagram(d);
+    if (d.trapezoid) return createCoderDiagram(d);
+
     const wire = "#1e293b";
     const accent = "#2563eb";
     const fill = "#eff6ff";

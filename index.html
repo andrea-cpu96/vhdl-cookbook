@@ -677,13 +677,13 @@ end process;`
     {
         title: "Universal Bidirectional Shift Register",
         group: "Parallel / Universal",
-        desc: "74194-style: parallel load, shift left, shift right, or hold, selected by load and dir with load taking priority.",
-        diagram: { inputs: ["D", "LOAD", "DIR"], reset: "sync", caption: "Universal bidirectional shift register" },
-        code: `-- Universal bidirectional shift register
--- load : parallel load (highest priority)
--- dir  : '1' = shift left, '0' = shift right
--- si_l : serial input for left shift (bit 0)
--- si_r : serial input for right shift (bit N-1)
+        desc: "74194-style universal register: the 2-bit select sel chooses hold, shift right, shift left, or parallel load (codes 00 / 01 / 10 / 11).",
+        diagram: { inputs: ["D", "SEL"], reset: "sync", caption: "Universal bidirectional shift register" },
+        code: `-- Universal bidirectional shift register (74194-style)
+-- sel  : mode select
+--   "00" hold   "01" shift right   "10" shift left   "11" load
+-- si_l : serial input for left shift  (enters bit 0)
+-- si_r : serial input for right shift (enters bit N-1)
 signal q : std_logic_vector(N-1 downto 0);
 
 process(clk)
@@ -691,12 +691,13 @@ begin
     if rising_edge(clk) then
         if rst = '1' then
             q <= (others => '0');
-        elsif load = '1' then
-            q <= d;
-        elsif dir = '1' then
-            q <= q(N-2 downto 0) & si_l;   -- shift left
         else
-            q <= si_r & q(N-1 downto 1);   -- shift right
+            case sel is
+                when "11"   => q <= d;                       -- parallel load
+                when "10"   => q <= q(N-2 downto 0) & si_l;   -- shift left
+                when "01"   => q <= si_r & q(N-1 downto 1);   -- shift right
+                when others => null;                         -- "00" = hold
+            end case;
         end if;
     end if;
 end process;`
@@ -852,6 +853,18 @@ dout <= qr(to_integer(unsigned(sel)));`
 q <= std_logic_vector(
         rotate_right(unsigned(d),
                      to_integer(unsigned(amt))));`
+    },
+    {
+        title: "Arithmetic Shift Right — Combinational",
+        group: "Special",
+        desc: "Shifts a signed word right by an arbitrary amount while replicating the sign bit (÷2^amt for two's-complement). shift_right on unsigned gives a logical, zero-filled shift instead. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["D", "AMT"], out: "Q", caption: "Arithmetic shift right (signed)" },
+        code: `-- Combinational arithmetic shift right by amt (sign-preserving)
+-- shift_right on SIGNED replicates the MSB (sign bit);
+-- use shift_right on UNSIGNED for a logical (zero-fill) shift.
+q <= std_logic_vector(
+        shift_right(signed(d),
+                    to_integer(unsigned(amt))));`
     },
     {
         title: "Rotate Right — One Position per Clock",

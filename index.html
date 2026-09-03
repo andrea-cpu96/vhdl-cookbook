@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="VHDL Cookbook: a lightweight, offline web-based VHDL template browser for FPGA and HDL development. Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, and more with a single click.">
-<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, sequential logic, digital design, hardware description language, VHDL snippets">
+<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, digital design, hardware description language, VHDL snippets">
 <meta name="author" content="VHDL Cookbook">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://andrea-cpu96.github.io/vhdl-cookbook/">
@@ -1361,6 +1361,156 @@ attribute syn_encoding of state_t : type is "onehot";   -- "sequential" | "gray"
 -- Intel Quartus: honours syn_encoding, or leave encoding to the tool.`
     }
 
+],
+
+memory: [
+
+    /* ── RAM ──────────────────────────────────── */
+
+    {
+        title: "Single-Port RAM",
+        group: "RAM",
+        desc: "One shared read/write port with a registered read — the canonical pattern that infers a block RAM. A write returns the old contents on the same address this cycle (read-first). Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["ADDR", "DIN", "WE"], out: "DOUT", caption: "Single-port RAM (registered read)" },
+        code: `-- Single-port RAM (registered read -> infers block RAM)
+-- WIDTH data bits, DEPTH words, addr is ADDR_W = ceil(log2(DEPTH)) bits
+type ram_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
+signal ram : ram_t;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if we = '1' then
+            ram(to_integer(unsigned(addr))) <= din;
+        end if;
+        dout <= ram(to_integer(unsigned(addr)));   -- read-first (old data)
+    end if;
+end process;`
+    },
+    {
+        title: "Simple Dual-Port RAM",
+        group: "RAM",
+        desc: "One write port and one independent read port, each free to use its own clock — the memory behind FIFOs and clock-domain-crossing buffers. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["WADDR", "RADDR", "DIN", "WE"], out: "DOUT", caption: "Simple dual-port RAM (1 write, 1 read)" },
+        code: `-- Simple dual-port RAM: separate write and read ports (own clocks allowed)
+-- tie wr_clk = rd_clk for a single-clock buffer
+type ram_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
+signal ram : ram_t;
+
+-- write port
+process(wr_clk)
+begin
+    if rising_edge(wr_clk) then
+        if we = '1' then
+            ram(to_integer(unsigned(waddr))) <= din;
+        end if;
+    end if;
+end process;
+
+-- read port
+process(rd_clk)
+begin
+    if rising_edge(rd_clk) then
+        dout <= ram(to_integer(unsigned(raddr)));   -- registered read
+    end if;
+end process;`
+    },
+    {
+        title: "True Dual-Port RAM",
+        group: "RAM",
+        desc: "Two fully independent read/write ports (A and B), each with its own clock, address and write-enable. Do not write the same address from both ports in one cycle (collision). Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["ADDR_A", "ADDR_B"], out: "DOUT", caption: "True dual-port RAM (ports A & B)" },
+        code: `-- True dual-port RAM: two independent read/write ports
+type ram_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
+signal ram : ram_t;
+
+-- port A
+process(clk_a)
+begin
+    if rising_edge(clk_a) then
+        if we_a = '1' then
+            ram(to_integer(unsigned(addr_a))) <= din_a;
+        end if;
+        dout_a <= ram(to_integer(unsigned(addr_a)));
+    end if;
+end process;
+
+-- port B
+process(clk_b)
+begin
+    if rising_edge(clk_b) then
+        if we_b = '1' then
+            ram(to_integer(unsigned(addr_b))) <= din_b;
+        end if;
+        dout_b <= ram(to_integer(unsigned(addr_b)));
+    end if;
+end process;`
+    },
+
+    /* ── ROM ──────────────────────────────────── */
+
+    {
+        title: "ROM — Inline Initialization",
+        group: "ROM",
+        desc: "Read-only memory initialized from a constant array; a registered read infers a block ROM. Swap the constant for an impure function reading a file to load contents externally. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["ADDR"], out: "DOUT", caption: "Synchronous ROM" },
+        code: `-- Synchronous ROM initialized inline (registered read -> block ROM)
+type rom_t is array (0 to 7) of std_logic_vector(7 downto 0);
+constant ROM : rom_t := (
+    0 => x"12", 1 => x"34", 2 => x"56", 3 => x"78",
+    4 => x"9a", 5 => x"bc", others => x"00");
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        dout <= ROM(to_integer(unsigned(addr)));
+    end if;
+end process;`
+    },
+
+    /* ── FIFO ────────────────────────────────── */
+
+    {
+        title: "Synchronous FIFO",
+        group: "FIFO",
+        desc: "Single-clock FIFO from a circular buffer with a count register driving the full and empty flags. Reads are registered (data appears the cycle after rd). Assumes DEPTH = 2**ADDR_W. Requires ieee.numeric_std.all.",
+        diagram: { inputs: ["DIN", "WR", "RD"], out: "DOUT", reset: "sync", caption: "Synchronous FIFO (full / empty)" },
+        code: `-- Single-clock FIFO with full/empty flags (DEPTH = 2**ADDR_W words)
+type mem_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
+signal mem        : mem_t;
+signal wptr, rptr : unsigned(ADDR_W-1 downto 0) := (others => '0');
+signal count      : unsigned(ADDR_W downto 0)   := (others => '0');  -- 0..DEPTH
+
+full  <= '1' when count = DEPTH else '0';
+empty <= '1' when count = 0     else '0';
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            wptr  <= (others => '0');
+            rptr  <= (others => '0');
+            count <= (others => '0');
+        else
+            if wr = '1' and count /= DEPTH then          -- write when not full
+                mem(to_integer(wptr)) <= din;
+                wptr <= wptr + 1;
+            end if;
+            if rd = '1' and count /= 0 then              -- read when not empty
+                dout <= mem(to_integer(rptr));
+                rptr <= rptr + 1;
+            end if;
+            -- net occupancy change (a simultaneous read+write cancels out)
+            if (wr = '1' and count /= DEPTH) and not (rd = '1' and count /= 0) then
+                count <= count + 1;
+            elsif (rd = '1' and count /= 0) and not (wr = '1' and count /= DEPTH) then
+                count <= count - 1;
+            end if;
+        end if;
+    end if;
+end process;`
+    }
+
 ]
 };
 
@@ -1368,7 +1518,8 @@ const templateGroups = [
     { name: "Registers", array: templates.register },
     { name: "Shift Registers", array: templates.shift },
     { name: "Counters", array: templates.counter },
-    { name: "Finite State Machines", array: templates.fsm }
+    { name: "Finite State Machines", array: templates.fsm },
+    { name: "Memory", array: templates.memory }
 ];
 
 const allTemplateItems =

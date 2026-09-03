@@ -32,13 +32,12 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - Safe FSM (illegal-state recovery)
 - State encoding (one-hot / binary / gray)
 
-## Planned Templates
-
 ### Memory
-- Single-Port RAM
-- Dual-Port RAM
-- ROM
-- FIFO
+- RAM (single-port, simple & true dual-port)
+- ROM (inline initialization)
+- Synchronous FIFO
+
+## Planned Templates
 
 ### Interfaces
 - UART RX

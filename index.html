@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="VHDL Cookbook: a lightweight, offline web-based VHDL template browser for FPGA and HDL development. Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, and more with a single click.">
-<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, digital design, hardware description language, VHDL snippets">
+<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, digital design, hardware description language, VHDL snippets">
 <meta name="author" content="VHDL Cookbook">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://andrea-cpu96.github.io/vhdl-cookbook/">
@@ -499,6 +499,145 @@ with digit select
            "0111101" when x"D",
            "1001111" when x"E",
            "1000111" when others;   -- F`
+    }
+
+],
+
+arithmetic: [
+
+    /* ── Add / Subtract ───────────────────── */
+
+    {
+        title: "Adder with Carry",
+        group: "Add / Subtract",
+        desc: "Unsigned adder that also produces a carry-out by computing one bit wider; carry-in chains multiple adders. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Unsigned adder with carry-in and carry-out (requires ieee.numeric_std.all)
+-- compute one bit wider; the extra MSB of the sum is the carry-out
+signal wide : unsigned(a'length downto 0);
+
+wide <= ('0' & unsigned(a)) + ('0' & unsigned(b))
+        + resize(unsigned'(0 => cin), a'length + 1);
+sum  <= std_logic_vector(wide(a'length - 1 downto 0));
+cout <= wide(a'length);`
+    },
+    {
+        title: "Subtractor with Borrow",
+        group: "Add / Subtract",
+        desc: "Unsigned subtractor whose borrow-out flags an underflow (a < b), again by working one bit wider. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Unsigned subtractor with borrow-out (requires ieee.numeric_std.all)
+-- borrow = '1' when a < b (the result underflowed)
+signal wide : unsigned(a'length downto 0);
+
+wide   <= ('0' & unsigned(a)) - ('0' & unsigned(b));
+diff   <= std_logic_vector(wide(a'length - 1 downto 0));
+borrow <= wide(a'length);`
+    },
+    {
+        title: "Adder / Subtractor",
+        group: "Add / Subtract",
+        desc: "Mode-selectable add or subtract (op = '0' adds, '1' subtracts); wraps on overflow. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Unsigned adder/subtractor: op = '0' add, '1' subtract
+result <= std_logic_vector(unsigned(a) + unsigned(b)) when op = '0'
+     else std_logic_vector(unsigned(a) - unsigned(b));`
+    },
+
+    /* ── Multiply ───────────────────────── */
+
+    {
+        title: "Combinational Multiplier",
+        group: "Multiply",
+        desc: "Single-expression multiply; the product must be as wide as the sum of the operand widths. Use signed() for signed operands. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Unsigned multiply: product width = a'length + b'length
+product <= std_logic_vector(unsigned(a) * unsigned(b));`
+    },
+    {
+        title: "Pipelined Multiplier",
+        group: "Multiply",
+        desc: "Registers the inputs and the product (two-cycle latency) to raise fmax; this is the pattern that infers DSP blocks. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Pipelined unsigned multiplier (2-cycle latency -> maps to DSP blocks)
+signal a_r, b_r : unsigned(N-1 downto 0);
+signal p_r      : unsigned(2*N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        a_r <= unsigned(a);
+        b_r <= unsigned(b);
+        p_r <= a_r * b_r;
+    end if;
+end process;
+
+product <= std_logic_vector(p_r);`
+    },
+    {
+        title: "Multiply-Accumulate (MAC)",
+        group: "Multiply",
+        desc: "Accumulates a*b each enabled cycle; make ACC_W wide enough for the number of terms to avoid overflow. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- MAC: acc <= acc + a*b per enabled clock
+signal acc : unsigned(ACC_W-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            acc <= (others => '0');
+        elsif en = '1' then
+            acc <= acc + resize(unsigned(a) * unsigned(b), ACC_W);
+        end if;
+    end if;
+end process;
+
+result <= std_logic_vector(acc);`
+    },
+
+    /* ── Accumulate & Saturate ───────────── */
+
+    {
+        title: "Accumulator",
+        group: "Accumulate & Saturate",
+        desc: "Running sum that adds din each enabled cycle and clears on reset. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Accumulator: acc <= acc + din per enabled clock
+signal acc : unsigned(N-1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst = '1' then
+            acc <= (others => '0');
+        elsif en = '1' then
+            acc <= acc + unsigned(din);
+        end if;
+    end if;
+end process;
+
+sum <= std_logic_vector(acc);`
+    },
+    {
+        title: "Saturating Adder",
+        group: "Accumulate & Saturate",
+        desc: "Unsigned add that clamps to all-ones on overflow instead of wrapping. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Unsigned saturating adder: clamp to all-ones on carry-out
+signal s : unsigned(a'length downto 0);
+
+s   <= ('0' & unsigned(a)) + ('0' & unsigned(b));
+sum <= (others => '1') when s(a'length) = '1'      -- overflow -> clamp
+  else std_logic_vector(s(a'length - 1 downto 0));`
+    },
+    {
+        title: "Absolute Value",
+        group: "Accumulate & Saturate",
+        desc: "Absolute value of a signed input. abs of the most-negative value overflows — widen by one bit if that case matters. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Absolute value of a signed input
+absval <= std_logic_vector(abs(signed(a)));`
     }
 
 ],
@@ -1719,6 +1858,7 @@ end process;`
 
 const templateGroups = [
     { name: "Combinational Logic", array: templates.combinational },
+    { name: "Arithmetic", array: templates.arithmetic },
     { name: "Registers", array: templates.register },
     { name: "Shift Registers", array: templates.shift },
     { name: "Counters", array: templates.counter },

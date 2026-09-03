@@ -48,13 +48,13 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - ROM (inline initialization)
 - Synchronous FIFO
 
-## Planned Templates
-
 ### Utilities
-- Debouncer
-- Synchronizer
-- Edge Detector
-- Clock Divider
+- Debouncer (counter-based, sampling)
+- Synchronizer (2-FF, pulse, reset)
+- Edge detector (rising, falling, any)
+- Clock divider (÷2, ÷N, clock-enable)
+
+## Planned Templates
 
 ### Interfaces
 - UART RX

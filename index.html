@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="VHDL Cookbook: a lightweight, offline web-based VHDL template browser for FPGA and HDL development. Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, and more with a single click.">
-<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, digital design, hardware description language, VHDL snippets">
+<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, synchronizer, debouncer, clock divider, digital design, hardware description language, VHDL snippets">
 <meta name="author" content="VHDL Cookbook">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://andrea-cpu96.github.io/vhdl-cookbook/">
@@ -1853,6 +1853,247 @@ begin
 end process;`
     }
 
+],
+
+utilities: [
+
+    /* ── Debouncer ──────────────────────── */
+
+    {
+        title: "Counter-Based Debouncer",
+        group: "Debouncer",
+        desc: "Accepts a new button level only after it stays stable for STABLE clocks; includes a 2-FF synchronizer since buttons are asynchronous. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Counter-based debouncer: output flips after STABLE stable clocks
+signal sync  : std_logic_vector(1 downto 0);   -- 2-FF synchronizer
+signal cnt   : unsigned(N-1 downto 0);
+signal level : std_logic := '0';
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        sync <= sync(0) & btn;                  -- synchronize async input
+        if sync(1) = level then
+            cnt <= (others => '0');             -- stable: hold, clear timer
+        else
+            cnt <= cnt + 1;                     -- differs: time how long
+            if cnt = STABLE-1 then
+                level <= sync(1);               -- accept the new level
+                cnt   <= (others => '0');
+            end if;
+        end if;
+    end if;
+end process;
+
+debounced <= level;`
+    },
+    {
+        title: "Sampling Debouncer",
+        group: "Debouncer",
+        desc: "Flips the output only after K consecutive identical synchronized samples; simpler than a full counter for slow inputs.",
+        diagram: null,
+        code: `-- Sampling debouncer: K identical samples in a row flip the output
+signal sync : std_logic_vector(1 downto 0);     -- 2-FF synchronizer
+signal shr  : std_logic_vector(K-1 downto 0);   -- last K samples
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        sync <= sync(0) & btn;
+        shr  <= shr(K-2 downto 0) & sync(1);
+        if    shr = (shr'range => '1') then
+            debounced <= '1';
+        elsif shr = (shr'range => '0') then
+            debounced <= '0';
+        end if;
+    end if;
+end process;`
+    },
+
+    /* ── Synchronizer ──────────────────── */
+
+    {
+        title: "Two-FF Synchronizer",
+        group: "Synchronizer",
+        desc: "The standard double-flop that brings a single-bit asynchronous signal into the clk domain. Constrain these registers (ASYNC_REG / false path) in your tool.",
+        diagram: null,
+        code: `-- Two-flip-flop synchronizer (single-bit level crossing into clk's domain)
+signal sync : std_logic_vector(1 downto 0);
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        sync <= sync(0) & async_in;   -- metastability settles by the 2nd FF
+    end if;
+end process;
+
+sync_out <= sync(1);`
+    },
+    {
+        title: "Pulse Synchronizer",
+        group: "Synchronizer",
+        desc: "Carries a single-cycle pulse from one clock domain to another by toggling a flag, synchronizing it, and detecting the edge. Space input pulses far enough apart for the destination to catch each toggle.",
+        diagram: null,
+        code: `-- Pulse synchronizer: 1-cycle pulse from clk_src domain to clk_dst domain
+signal tog  : std_logic := '0';
+signal sync : std_logic_vector(2 downto 0);
+
+process(clk_src)                       -- source: toggle once per input pulse
+begin
+    if rising_edge(clk_src) then
+        if pulse_in = '1' then
+            tog <= not tog;
+        end if;
+    end if;
+end process;
+
+process(clk_dst)                       -- destination: sync then edge-detect
+begin
+    if rising_edge(clk_dst) then
+        sync <= sync(1 downto 0) & tog;
+    end if;
+end process;
+
+pulse_out <= sync(2) xor sync(1);      -- one dst-clock pulse per toggle`
+    },
+    {
+        title: "Reset Synchronizer",
+        group: "Synchronizer",
+        desc: "Asserts reset asynchronously but releases it synchronously, so logic leaves reset cleanly without metastability. Active-low convention.",
+        diagram: null,
+        code: `-- Reset synchronizer: async assert, sync deassert (active-low)
+signal sync : std_logic_vector(1 downto 0);
+
+process(clk, arst_n)
+begin
+    if arst_n = '0' then
+        sync <= (others => '0');       -- assert immediately
+    elsif rising_edge(clk) then
+        sync <= sync(0) & '1';         -- release after 2 synced clocks
+    end if;
+end process;
+
+rst_sync_n <= sync(1);`
+    },
+
+    /* ── Edge Detector ────────────────── */
+
+    {
+        title: "Rising-Edge Detector",
+        group: "Edge Detector",
+        desc: "Emits a one-clock pulse on a 0 -> 1 transition. Synchronize d first if it comes from another clock domain.",
+        diagram: null,
+        code: `-- Rising-edge detector: 1-cycle pulse on 0 -> 1
+signal d_r : std_logic;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        d_r <= d;
+    end if;
+end process;
+
+rise <= d and not d_r;`
+    },
+    {
+        title: "Falling-Edge Detector",
+        group: "Edge Detector",
+        desc: "Emits a one-clock pulse on a 1 -> 0 transition.",
+        diagram: null,
+        code: `-- Falling-edge detector: 1-cycle pulse on 1 -> 0
+signal d_r : std_logic;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        d_r <= d;
+    end if;
+end process;
+
+fall <= (not d) and d_r;`
+    },
+    {
+        title: "Any-Edge Detector",
+        group: "Edge Detector",
+        desc: "Emits a one-clock pulse on either transition of d.",
+        diagram: null,
+        code: `-- Any-edge detector: 1-cycle pulse on any change
+signal d_r : std_logic;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        d_r <= d;
+    end if;
+end process;
+
+edge <= d xor d_r;`
+    },
+
+    /* ── Clock Divider ────────────────── */
+
+    {
+        title: "Divide-by-2",
+        group: "Clock Divider",
+        desc: "Toggle flip-flop giving an exact 50% duty clock at half the frequency. On FPGAs prefer a clock enable or a PLL/MMCM over a fabric-divided clock.",
+        diagram: null,
+        code: `-- Divide-by-2 clock (toggle FF, 50% duty)
+signal q : std_logic := '0';
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        q <= not q;
+    end if;
+end process;
+
+clk_div2 <= q;`
+    },
+    {
+        title: "Divide-by-N (Even)",
+        group: "Clock Divider",
+        desc: "Counter that toggles the output every DIV/2 clocks, giving a 50% duty clock for even DIV. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Divide-by-N clock, even DIV -> 50% duty
+signal cnt : unsigned(N-1 downto 0) := (others => '0');
+signal q   : std_logic := '0';
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if cnt = DIV/2 - 1 then
+            cnt <= (others => '0');
+            q   <= not q;              -- toggle each half period
+        else
+            cnt <= cnt + 1;
+        end if;
+    end if;
+end process;
+
+clk_div <= q;`
+    },
+    {
+        title: "Clock-Enable Generator",
+        group: "Clock Divider",
+        desc: "One-cycle strobe every DIV clocks for any DIV — the FPGA-preferred alternative to a divided clock: run everything on clk and gate with tick. Same idea as the tick generator in Counters. Requires ieee.numeric_std.all.",
+        diagram: null,
+        code: `-- Clock-enable / slow-strobe: tick high 1 cycle every DIV clocks
+signal cnt : unsigned(N-1 downto 0) := (others => '0');
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if cnt = DIV-1 then
+            cnt  <= (others => '0');
+            tick <= '1';
+        else
+            cnt  <= cnt + 1;
+            tick <= '0';
+        end if;
+    end if;
+end process;`
+    }
+
 ]
 };
 
@@ -1863,7 +2104,8 @@ const templateGroups = [
     { name: "Shift Registers", array: templates.shift },
     { name: "Counters", array: templates.counter },
     { name: "Finite State Machines", array: templates.fsm },
-    { name: "Memory", array: templates.memory }
+    { name: "Memory", array: templates.memory },
+    { name: "Utilities", array: templates.utilities }
 ];
 
 const allTemplateItems =

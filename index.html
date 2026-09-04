@@ -89,6 +89,56 @@ body {
     top: 0;
     bottom: 0;
     overflow-y: auto;
+    transition: transform 0.25s ease;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.sidebar-header h2 {
+    margin: 0;
+}
+
+.sidebar-btn {
+    background: #334155;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.sidebar-btn:hover {
+    background: #2563eb;
+}
+
+.sidebar-btn.expand {
+    position: fixed;
+    left: 15px;
+    top: 15px;
+    z-index: 10;
+    display: none;
+}
+
+body.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+}
+
+body.sidebar-collapsed .content {
+    margin-left: 0;
+}
+
+body.sidebar-collapsed .sidebar-btn.expand {
+    display: block;
 }
 
 .sidebar h2 {
@@ -184,6 +234,7 @@ body {
     margin-left: 280px;
     padding: 20px;
     flex-grow: 1;
+    transition: margin-left 0.25s ease;
 }
 
 pre {
@@ -320,7 +371,14 @@ button.copied {
 
 <div class="sidebar">
 
-    <h2>VHDL Blocks</h2>
+    <div class="sidebar-header">
+        <h2>VHDL Blocks</h2>
+        <button
+            class="sidebar-btn"
+            onclick="toggleSidebar()"
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar">◀</button>
+    </div>
 
     <input
         type="text"
@@ -331,6 +389,12 @@ button.copied {
     <div id="templates"></div>
 
 </div>
+
+<button
+    class="sidebar-btn expand"
+    onclick="toggleSidebar()"
+    title="Show sidebar"
+    aria-label="Show sidebar">▶</button>
 
 <div class="content">
 
@@ -2634,6 +2698,11 @@ function setActive(element)
         .forEach(el => el.classList.remove("active"));
 
     element.classList.add("active");
+}
+
+function toggleSidebar()
+{
+    document.body.classList.toggle("sidebar-collapsed");
 }
 
 function loadProject(element)

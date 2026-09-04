@@ -20,6 +20,11 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 ### Project Templates
 - VHDL Project Template
 
+### Structural Design
+- Component declaration + instantiation
+- Direct entity instantiation (VHDL-93+)
+- Array of instances (for … generate)
+
 ### Combinational Logic
 - Multiplexers (2:1, 4:1, N:1), demux, tri-state buffer
 - Decoder (3:8), priority encoder, one-hot → binary

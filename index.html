@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="VHDL Cookbook: a lightweight, offline web-based VHDL template browser for FPGA and HDL development. Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, and more with a single click.">
-<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, synchronizer, debouncer, clock divider, testbench, simulation, verification, digital design, hardware description language, VHDL snippets">
+<meta name="keywords" content="VHDL, VHDL templates, VHDL cookbook, FPGA, HDL, VHDL code, VHDL examples, finite state machine, FSM, register, counter, shift register, RAM, ROM, FIFO, memory, sequential logic, combinational logic, multiplexer, decoder, comparator, arithmetic, adder, multiplier, synchronizer, debouncer, clock divider, testbench, simulation, verification, digital design, hardware description language, structural VHDL, component instantiation, port map, generate statement, VHDL snippets">
 <meta name="author" content="VHDL Cookbook">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#1e293b">
@@ -62,6 +62,7 @@
     "Combinational and sequential logic building blocks",
     "Finite state machine templates",
     "Memory blocks: RAM, ROM, FIFO",
+    "Component and module instantiation templates",
     "Testbench and verification skeletons",
     "Works fully offline"
   ]
@@ -2436,10 +2437,111 @@ assert q = expected
     severity error;`
     }
 
+],
+
+structural: [
+
+    /* ── Component Instantiation ─────────────────────── */
+
+    {
+        title: "Component Declaration + Instantiation",
+        group: "Component Instantiation",
+        desc: "The classic way to add a sub-module: declare a matching component in the architecture's declarative part, then instantiate it and wire its ports with a port map.",
+        code: `-- Reuse a sub-module (entity my_module) inside a parent architecture.
+-- Step 1: declare the component  (architecture declarative part)
+-- Step 2: instantiate it          (architecture body)
+
+architecture rtl of top is
+
+    -- component declaration: must match the sub-module's entity
+    component my_module
+        generic (
+            WIDTH : natural := 8
+        );
+        port (
+            clk : in  std_logic;
+            rst : in  std_logic;
+            d   : in  std_logic_vector(WIDTH - 1 downto 0);
+            q   : out std_logic_vector(WIDTH - 1 downto 0)
+        );
+    end component;
+
+    signal d_i : std_logic_vector(7 downto 0);
+    signal q_i : std_logic_vector(7 downto 0);
+
+begin
+
+    -- instantiation:  label : component_name
+    u_my_module : my_module
+        generic map (
+            WIDTH => 8
+        )
+        port map (
+            clk => clk,
+            rst => rst,
+            d   => d_i,
+            q   => q_i
+        );
+
+end architecture rtl;`
+    },
+
+    {
+        title: "Direct Entity Instantiation",
+        group: "Component Instantiation",
+        desc: "VHDL-93 and later: skip the component declaration and instantiate the entity directly as library.entity(architecture). Less boilerplate and nothing to keep in sync.",
+        code: `-- Direct entity instantiation (VHDL-93 and later):
+-- no component declaration needed - reference the entity directly.
+
+architecture rtl of top is
+    signal d_i : std_logic_vector(7 downto 0);
+    signal q_i : std_logic_vector(7 downto 0);
+begin
+
+    -- label : entity library.entity_name(architecture_name)
+    u_my_module : entity work.my_module(rtl)
+        generic map (
+            WIDTH => 8
+        )
+        port map (
+            clk => clk,
+            rst => rst,
+            d   => d_i,
+            q   => q_i
+        );
+
+end architecture rtl;`
+    },
+
+    {
+        title: "Array of Instances (for ... generate)",
+        group: "Component Instantiation",
+        desc: "Instantiate N identical sub-modules with a for ... generate loop - ideal for the lanes of a bus, pipeline stages, or processing-element arrays.",
+        code: `-- Instantiate N copies of a sub-module with a for ... generate loop.
+architecture rtl of top is
+    constant N : natural := 4;
+    signal d_i : std_logic_vector(N - 1 downto 0);
+    signal q_i : std_logic_vector(N - 1 downto 0);
+begin
+
+    gen_cells : for i in 0 to N - 1 generate
+        u_cell : entity work.my_cell(rtl)
+            port map (
+                clk => clk,
+                rst => rst,
+                d   => d_i(i),
+                q   => q_i(i)
+            );
+    end generate gen_cells;
+
+end architecture rtl;`
+    }
+
 ]
 };
 
 const templateGroups = [
+    { name: "Structural Design", array: templates.structural },
     { name: "Combinational Logic", array: templates.combinational },
     {
         name: "Sequential Logic",

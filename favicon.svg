@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="VHDL Cookbook">
+  <rect width="64" height="64" rx="14" fill="#1e293b"/>
+  <g fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 21 L12 32 L23 43"/>
+    <path d="M41 21 L52 32 L41 43"/>
+  </g>
+  <line x1="37" y1="17" x2="27" y2="47" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>
+</svg>

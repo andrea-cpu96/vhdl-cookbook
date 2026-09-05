@@ -602,12 +602,27 @@ gt <= '1' when unsigned(a) > unsigned(b) else '0';`
         group: "Code Converters",
         desc: "Even-parity bit is the XOR of all data bits; the checker XORs it against the received parity to flag corruption. Uses the VHDL-2008 reduction operator.",
         diagram: { clk: "none", bit: true, inputs: ["data"], out: "parity", buses: ["data"], caption: "Parity generator" },
-        code: `-- Even parity generator (odd parity = 'not' of this)
-parity <= xor data;                     -- VHDL-2008 unary reduction
--- pre-2008: parity <= data(0) xor data(1) xor data(2) xor ...;
+        code: `-- Even parity generator: XOR all bits together in a portable loop.
+process(data)
+    variable p : std_logic := '0';
+begin
+    p := '0';
+    for i in data'range loop
+        p := p xor data(i);
+    end loop;
+    parity <= p;
+end process;
 
--- Parity checker: err = '1' when the word was corrupted
-err <= (xor data) xor rx_parity;`
+-- Parity checker: err = '1' when the received word was corrupted
+process(data, rx_parity)
+    variable p : std_logic := '0';
+begin
+    p := '0';
+    for i in data'range loop
+        p := p xor data(i);
+    end loop;
+    err <= '1' when p /= rx_parity else '0';
+end process;`
     },
     {
         title: "Binary to Gray",
@@ -881,8 +896,18 @@ sum <= (others => '1') when s(a'length) = '1'      -- overflow -> clamp
         group: "Accumulate & Saturate",
         desc: "Absolute value of a signed input. abs of the most-negative value overflows — widen by one bit if that case matters. Requires ieee.numeric_std.all.",
         diagram: { clk: "none", bit: true, inputs: ["a"], out: "absval", buses: ["a", "absval"], caption: "Absolute value" },
-        code: `-- Absolute value of a signed input
-absval <= std_logic_vector(abs(signed(a)));`
+        code: `-- Signed absolute value: widen first to avoid the minimum-value overflow.
+-- Use a wider result if the output must represent the full signed range.
+signal a_wide : signed(a'length downto 0);
+signal absval_wide : signed(a'length downto 0);
+
+process(a)
+begin
+    a_wide <= resize(signed(a), a'length + 1);
+    absval_wide <= abs(a_wide);
+end process;
+
+absval <= std_logic_vector(absval_wide(a'length - 1 downto 0));`
     }
 
 ],
@@ -1392,8 +1417,8 @@ end process;`
         diagram: { inputs: [], reset: "sync", caption: "16-bit LFSR (Fibonacci)" },
         code: `-- 16-bit maximal-length LFSR (Fibonacci / many-to-one)
 -- polynomial x^16 + x^14 + x^13 + x^11 + 1 → period 2^16 - 1
--- WARNING: the all-zero state locks up; seed must be non-zero.
-signal qr : std_logic_vector(15 downto 0);
+-- WARNING: the all-zero state locks up; initialize the LFSR to a non-zero seed.
+signal qr : std_logic_vector(15 downto 0) := (0 => '1', others => '0');
 signal fb : std_logic;
 
 fb <= qr(0) xor qr(2) xor qr(3) xor qr(5);
@@ -1417,7 +1442,8 @@ end process;`
         code: `-- 16-bit maximal-length LFSR (Galois / one-to-many)
 -- same polynomial x^16 + x^14 + x^13 + x^11 + 1
 -- tap mask = x"B400"  (bits 15, 13, 12, 10)
-signal qr : std_logic_vector(15 downto 0);
+-- initialize to a non-zero seed to avoid locking in the all-zero state.
+signal qr : std_logic_vector(15 downto 0) := (0 => '1', others => '0');
 
 process(clk)
     variable nx : std_logic_vector(15 downto 0);
@@ -1444,7 +1470,8 @@ end process;`
         desc: "Fixed-depth shift register whose output tap is selected by a register, giving a programmable pipeline delay of 1..N clocks (dout lags din by SEL+1 cycles, since the input is registered first). Requires ieee.numeric_std.all.",
         diagram: { inputs: ["D", "SEL"], out: "DO", reset: "sync", caption: "Programmable N-tap delay" },
         code: `-- Programmable delay line:
--- dout lags din by SEL+1 clock cycles (input is registered first; guard: sel < N)
+-- dout lags din by SEL+1 clock cycles (input is registered first)
+-- guard the tap so sel stays within the valid range of the shift register.
 signal qr : std_logic_vector(N-1 downto 0);
 
 process(clk)
@@ -1458,7 +1485,16 @@ begin
     end if;
 end process;
 
-dout <= qr(to_integer(unsigned(sel)));`
+-- valid only when sel < N; otherwise hold the output at 0
+-- sel must be sized to cover 0 .. N-1.
+process(sel)
+begin
+    if unsigned(sel) < N then
+        dout <= qr(to_integer(unsigned(sel)));
+    else
+        dout <= (others => '0');
+    end if;
+end process;`
     },
     {
         title: "Rotate Right — One Position per Clock",
@@ -2512,8 +2548,7 @@ end process;`
         code: `-- Self-checking: place after applying inputs and waiting for the result
 wait until rising_edge(clk);
 assert q = expected
-    report "mismatch: q=" & to_hstring(q) &
-           " exp=" & to_hstring(expected)
+    report "mismatch: q /= expected"
     severity error;`
     }
 

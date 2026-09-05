@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -11,26 +11,26 @@
 <link rel="canonical" href="https://andrea-cpu96.github.io/vhdl-cookbook/">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
-<title>VHDL Cookbook — VHDL Templates &amp; Code Examples for FPGA / HDL Design</title>
+<title>VHDL Cookbook ÔÇö VHDL Templates &amp; Code Examples for FPGA / HDL Design</title>
 
 <!-- Open Graph (Facebook, LinkedIn, etc.) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="VHDL Cookbook">
-<meta property="og:title" content="VHDL Cookbook — Ready-to-use VHDL Templates">
-<meta property="og:description" content="Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, RAM/ROM, FIFOs, testbenches and more — a fast, offline template browser for FPGA and HDL development.">
+<meta property="og:title" content="VHDL Cookbook ÔÇö Ready-to-use VHDL Templates">
+<meta property="og:description" content="Search and copy ready-to-use VHDL code templates for registers, counters, finite state machines, RAM/ROM, FIFOs, testbenches and more ÔÇö a fast, offline template browser for FPGA and HDL development.">
 <meta property="og:url" content="https://andrea-cpu96.github.io/vhdl-cookbook/">
 <meta property="og:image" content="https://andrea-cpu96.github.io/vhdl-cookbook/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="VHDL Cookbook — ready-to-use VHDL templates for FPGA and HDL design">
+<meta property="og:image:alt" content="VHDL Cookbook ÔÇö ready-to-use VHDL templates for FPGA and HDL design">
 <meta property="og:locale" content="en_US">
 
 <!-- Twitter / X card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="VHDL Cookbook — Ready-to-use VHDL Templates">
+<meta name="twitter:title" content="VHDL Cookbook ÔÇö Ready-to-use VHDL Templates">
 <meta name="twitter:description" content="Search and copy ready-to-use VHDL code templates for FPGA and HDL development: FSMs, counters, RAM/ROM, FIFOs, testbenches and more.">
 <meta name="twitter:image" content="https://andrea-cpu96.github.io/vhdl-cookbook/og-image.png">
-<meta name="twitter:image:alt" content="VHDL Cookbook — ready-to-use VHDL templates for FPGA and HDL design">
+<meta name="twitter:image:alt" content="VHDL Cookbook ÔÇö ready-to-use VHDL templates for FPGA and HDL design">
 
 <!-- Structured data -->
 <script type="application/ld+json">
@@ -377,7 +377,7 @@ button.copied {
             class="sidebar-btn"
             onclick="toggleSidebar()"
             title="Collapse sidebar"
-            aria-label="Collapse sidebar">◀</button>
+            aria-label="Collapse sidebar">ÔùÇ</button>
     </div>
 
     <input
@@ -394,7 +394,7 @@ button.copied {
     class="sidebar-btn expand"
     onclick="toggleSidebar()"
     title="Show sidebar"
-    aria-label="Show sidebar">▶</button>
+    aria-label="Show sidebar">ÔûÂ</button>
 
 <div class="content">
 
@@ -405,7 +405,7 @@ button.copied {
 </div>
 
 <div id="toast" class="toast">
-    ✅ Template copied to clipboard
+    Ô£à Template copied to clipboard
 </div>
 
 <script>
@@ -418,10 +418,8 @@ use ieee.numeric_std.all;
 
 entity my_entity is
     port (
-        clk : in  std_logic;
-        rst : in  std_logic;
-        d   : in  std_logic_vector(7 downto 0);
-        q   : out std_logic_vector(7 downto 0)
+        clk : in std_logic;
+        rst : in std_logic
     );
 end entity my_entity;
 
@@ -429,24 +427,11 @@ architecture rtl of my_entity is
 
 begin
 
-    -- example body: registered capture, replace with your design logic
-    -- (ports and behaviour match the Testbench Skeleton template)
-    process(clk)
-    begin
-        if rising_edge(clk) then
-            if rst = '1' then
-                q <= (others => '0');
-            else
-                q <= d;
-            end if;
-        end if;
-    end process;
-
 end architecture rtl;`,
 
 combinational: [
 
-    /* ── Multiplexing ───────────────────────── */
+    /* ÔöÇÔöÇ Multiplexing ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "2:1 Multiplexer",
@@ -499,13 +484,13 @@ end process;`
         title: "Tri-State Buffer",
         group: "Multiplexing",
         desc: "Drives a bidirectional pad when output-enable is high and releases it to high-impedance otherwise. Use only at I/O pads, not for internal FPGA logic.",
-        diagram: { clk: "none", inputs: ["data_out", "oe"], out: "pad", buses: ["data_out"], caption: "Tri-state buffer" },
+        diagram: { clk: "none", bit: true, inputs: ["A", "OE"], out: "pad", caption: "Tri-state buffer" },
         code: `-- Tri-state buffer for a bidirectional pad (oe = output enable)
 pad     <= data_out when oe = '1' else (others => 'Z');
 data_in <= pad;   -- always sample the pad`
     },
 
-    /* ── Decoding & Encoding ────────────── */
+    /* ÔöÇÔöÇ Decoding & Encoding ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "3:8 Decoder",
@@ -574,7 +559,7 @@ begin
 end process;`
     },
 
-    /* ── Comparators ────────────────────── */
+    /* ÔöÇÔöÇ Comparators ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Equality Comparator",
@@ -595,7 +580,7 @@ eq <= '1' when a = b                     else '0';
 gt <= '1' when unsigned(a) > unsigned(b) else '0';`
     },
 
-    /* ── Code Converters ────────────────── */
+    /* ÔöÇÔöÇ Code Converters ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Parity Generator / Checker",
@@ -636,7 +621,7 @@ end process;`
     {
         title: "Seven-Segment Decoder",
         group: "Code Converters",
-        desc: "Maps a hex digit (0-F) to a 7-segment pattern in segment order abcdefg; shown active-high (1 = lit) — invert for a common-anode display.",
+        desc: "Maps a hex digit (0-F) to a 7-segment pattern in segment order abcdefg; shown active-high (1 = lit) ÔÇö invert for a common-anode display.",
         diagram: { clk: "none", bit: true, inputs: ["digit"], out: "seg", buses: ["digit", "seg"], caption: "Seven-segment decoder" },
         code: `-- Hex digit -> 7-segment, seg = a b c d e f g  (seg(6)=a ... seg(0)=g)
 -- active-HIGH (1 = lit); invert seg for a common-anode display
@@ -659,12 +644,12 @@ with digit select
            "1000111" when others;   -- F`
     },
 
-    /* ── Shifters ────────────────── */
+    /* ÔöÇÔöÇ Shifters ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Barrel Shifter",
         group: "Shifters",
-        desc: "Rotates (or shifts) a word by an arbitrary amount in a single combinational path — no flip-flops. Requires ieee.numeric_std.all.",
+        desc: "Rotates (or shifts) a word by an arbitrary amount in a single combinational path ÔÇö no flip-flops. Requires ieee.numeric_std.all.",
         diagram: { clk: "none", bit: true, inputs: ["d", "amt"], out: "q", buses: ["d", "q"], caption: "Barrel shifter" },
         code: `-- Combinational barrel shifter: rotate right by amt
 -- (use rotate_left / srl / sll for the other directions)
@@ -675,7 +660,7 @@ q <= std_logic_vector(
     {
         title: "Arithmetic Shift Right",
         group: "Shifters",
-        desc: "Shifts a signed word right by an arbitrary amount while replicating the sign bit (÷2^amt for two's-complement). shift_right on unsigned gives a logical, zero-filled shift instead. Requires ieee.numeric_std.all.",
+        desc: "Shifts a signed word right by an arbitrary amount while replicating the sign bit (├À2^amt for two's-complement). shift_right on unsigned gives a logical, zero-filled shift instead. Requires ieee.numeric_std.all.",
         diagram: { clk: "none", bit: true, inputs: ["d", "amt"], out: "q", buses: ["d", "q"], caption: "Arithmetic shift right" },
         code: `-- Combinational arithmetic shift right by amt (sign-preserving)
 -- shift_right on SIGNED replicates the MSB (sign bit);
@@ -689,7 +674,7 @@ q <= std_logic_vector(
 
 arithmetic: [
 
-    /* ── Add / Subtract ───────────────────── */
+    /* ÔöÇÔöÇ Add / Subtract ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Adder with Carry",
@@ -728,7 +713,7 @@ result <= std_logic_vector(unsigned(a) + unsigned(b)) when op = '0'
      else std_logic_vector(unsigned(a) - unsigned(b));`
     },
 
-    /* ── Multiply ───────────────────────── */
+    /* ÔöÇÔöÇ Multiply ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Combinational Multiplier",
@@ -780,7 +765,7 @@ end process;
 result <= std_logic_vector(acc);`
     },
 
-    /* ── Divide ───────────────────────── */
+    /* ÔöÇÔöÇ Divide ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Divide by 2^K (Shift)",
@@ -796,7 +781,7 @@ q <= std_logic_vector(shift_right(unsigned(a), K));
     {
         title: "Sequential Divider (Restoring)",
         group: "Divide",
-        desc: "Multi-cycle restoring divider: pulse start with a and b, then done strobes after N clocks with quotient q and remainder r. Variable-divisor division needs a sequential core like this (or vendor IP) — the / operator only synthesizes for constant divisors. Requires ieee.numeric_std.all.",
+        desc: "Multi-cycle restoring divider: pulse start with a and b, then done strobes after N clocks with quotient q and remainder r. Variable-divisor division needs a sequential core like this (or vendor IP) ÔÇö the / operator only synthesizes for constant divisors. Requires ieee.numeric_std.all.",
         diagram: { bit: true, inputs: ["a", "b", "start"], outputs: ["q", "r", "done"], buses: ["a", "b", "q", "r"], caption: "Sequential restoring divider" },
         code: `-- Sequential restoring divider (unsigned): q = a / b, r = a mod b in N clocks.
 -- Pulse 'start' with a, b valid; 'done' strobes when q and r are ready.
@@ -841,7 +826,7 @@ q <= std_logic_vector(quot);                -- quotient
 r <= std_logic_vector(remr);                -- remainder`
     },
 
-    /* ── Accumulate & Saturate ───────────── */
+    /* ÔöÇÔöÇ Accumulate & Saturate ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Accumulator",
@@ -879,7 +864,7 @@ sum <= (others => '1') when s(a'length) = '1'      -- overflow -> clamp
     {
         title: "Absolute Value",
         group: "Accumulate & Saturate",
-        desc: "Absolute value of a signed input. abs of the most-negative value overflows — widen by one bit if that case matters. Requires ieee.numeric_std.all.",
+        desc: "Absolute value of a signed input. abs of the most-negative value overflows ÔÇö widen by one bit if that case matters. Requires ieee.numeric_std.all.",
         diagram: { clk: "none", bit: true, inputs: ["a"], out: "absval", buses: ["a", "absval"], caption: "Absolute value" },
         code: `-- Absolute value of a signed input
 absval <= std_logic_vector(abs(signed(a)));`
@@ -901,7 +886,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Synchronous Reset",
+        title: "D Register ÔÇö Synchronous Reset",
         group: "D Registers",
         desc: "Basic D-type register that clears to zero on a synchronous reset.",
         diagram: { reset: "sync" },
@@ -917,7 +902,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Asynchronous Reset",
+        title: "D Register ÔÇö Asynchronous Reset",
         group: "D Registers",
         desc: "Clears immediately when reset asserts, independent of the clock.",
         diagram: { reset: "async" },
@@ -931,7 +916,7 @@ begin
 end process;`
     },
     {
-        title: "D Register with Enable — Synchronous Reset",
+        title: "D Register with Enable ÔÇö Synchronous Reset",
         group: "D Registers",
         desc: "Loads new data only while the enable is high; reset is synchronous.",
         diagram: { enable: true, reset: "sync" },
@@ -947,7 +932,7 @@ begin
 end process;`
     },
     {
-        title: "D Register with Enable — Asynchronous Reset",
+        title: "D Register with Enable ÔÇö Asynchronous Reset",
         group: "D Registers",
         desc: "Asynchronous reset combined with a clock enable for the data load.",
         diagram: { enable: true, reset: "async" },
@@ -979,7 +964,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Active-Low Asynchronous Reset",
+        title: "D Register ÔÇö Active-Low Asynchronous Reset",
         group: "D Registers",
         desc: "Industry-standard convention: reset asserts when rst_n is driven low.",
         diagram: { reset: { note: "async", low: true } },
@@ -995,10 +980,10 @@ end process;`
     {
         title: "D Register with Initial Value",
         group: "D Registers",
-        desc: "No reset — powers up to a value defined in the signal declaration (FPGA).",
+        desc: "No reset ÔÇö powers up to a value defined in the signal declaration (FPGA).",
         diagram: {},
         code: `-- In the architecture declarative part:
-signal q : std_logic_vector(N-1 downto 0) := (others => '0');
+signal q : std_logic_vector(7 downto 0) := (others => '0');
 
 -- In the architecture body:
 process(clk)
@@ -1009,7 +994,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Synchronous Set",
+        title: "D Register ÔÇö Synchronous Set",
         group: "Set / Preset",
         desc: "Presets all bits to '1' on a synchronous set instead of clearing.",
         diagram: { set: "sync" },
@@ -1025,7 +1010,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Asynchronous Set (Preset)",
+        title: "D Register ÔÇö Asynchronous Set (Preset)",
         group: "Set / Preset",
         desc: "Presets all bits to '1' immediately when set asserts, independent of the clock.",
         diagram: { set: "async" },
@@ -1039,7 +1024,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Async Reset + Sync Set",
+        title: "D Register ÔÇö Async Reset + Sync Set",
         group: "Set / Preset",
         desc: "Asynchronous reset takes priority; a synchronous set preloads all ones.",
         diagram: { set: "sync", reset: "async" },
@@ -1057,7 +1042,7 @@ begin
 end process;`
     },
     {
-        title: "D Register — Falling-Edge Triggered",
+        title: "D Register ÔÇö Falling-Edge Triggered",
         group: "D Registers",
         desc: "Samples data on the falling clock edge instead of the rising edge.",
         diagram: { reset: "sync", clk: "falling" },
@@ -1139,7 +1124,7 @@ begin
 end process;`
     },
 
-    /* ── Pipeline ─────────────────────────────────── */
+    /* ÔöÇÔöÇ Pipeline ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Pipeline Register (Data + Valid)",
@@ -1174,10 +1159,10 @@ dout_vld <= valid_p(N-1);`
 
 shift: [
 
-    /* ── Serial I/O ─────────────────────────────── */
+    /* ÔöÇÔöÇ Serial I/O ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
-        title: "SISO — Shift Left",
+        title: "SISO ÔÇö Shift Left",
         group: "Serial I/O",
         desc: "Serial-in / serial-out delay line. Data enters the LSB and ripples toward the MSB, which appears at dout after N clock cycles.",
         diagram: { bit: true, inputs: ["DIN"], out: "DO", reset: "sync", caption: "N-stage SISO (shift left)" },
@@ -1200,7 +1185,7 @@ end process;
 dout <= q(N-1);`
     },
     {
-        title: "SISO — Shift Right",
+        title: "SISO ÔÇö Shift Right",
         group: "Serial I/O",
         desc: "Serial-in / serial-out register where data enters the MSB and exits the LSB (little-endian / LSB-first shift).",
         diagram: { bit: true, inputs: ["DIN"], out: "DO", reset: "sync", caption: "N-stage SISO (shift right)" },
@@ -1223,10 +1208,10 @@ end process;
 dout <= q(0);`
     },
     {
-        title: "SIPO — Serial In / Parallel Out",
+        title: "SIPO ÔÇö Serial In / Parallel Out",
         group: "Serial I/O",
         desc: "Deserializer: a stream of bits is shifted in and the full N-bit word is available in parallel after N clock cycles (UART RX pattern).",
-        diagram: { inputs: ["SI"], reset: "sync", caption: "N-bit SIPO (serial → parallel)" },
+        diagram: { inputs: ["SI"], reset: "sync", caption: "N-bit SIPO (serial ÔåÆ parallel)" },
         code: `-- N-bit SIPO shift register (deserializer)
 -- si : serial input
 -- q  : parallel output word
@@ -1244,10 +1229,10 @@ begin
 end process;`
     },
     {
-        title: "PISO — Parallel In / Serial Out",
+        title: "PISO ÔÇö Parallel In / Serial Out",
         group: "Serial I/O",
         desc: "Serializer: the parallel word is captured when load is asserted, then shifted out one bit per cycle (LSB first by default).",
-        diagram: { inputs: ["D", "LOAD", "SHIFT"], out: "SO", reset: "sync", caption: "N-bit PISO (parallel → serial)" },
+        diagram: { inputs: ["D", "LOAD", "SHIFT"], out: "SO", reset: "sync", caption: "N-bit PISO (parallel ÔåÆ serial)" },
         code: `-- N-bit PISO shift register (serializer)
 -- d     : parallel input word
 -- load  : parallel capture when high
@@ -1271,12 +1256,12 @@ end process;
 so <= q(0);`
     },
 
-    /* ── Parallel / Universal ────────────────────── */
+    /* ÔöÇÔöÇ Parallel / Universal ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
-        title: "PIPO — Parallel In / Parallel Out",
+        title: "PIPO ÔÇö Parallel In / Parallel Out",
         group: "Parallel / Universal",
-        desc: "Captures the whole data word when load is asserted and otherwise holds — the structural building block used by PISO and universal registers.",
+        desc: "Captures the whole data word when load is asserted and otherwise holds ÔÇö the structural building block used by PISO and universal registers.",
         diagram: { inputs: ["D", "LOAD"], reset: "sync", caption: "N-bit PIPO (load)" },
         code: `-- N-bit PIPO register with load enable
 -- (identical to an enable-gated parallel register)
@@ -1324,7 +1309,7 @@ end process;`
     {
         title: "Shift Register with Load + Enable",
         group: "Parallel / Universal",
-        desc: "Loads a seed word, then shifts on each enable — the pattern used by serializers with framing and by streaming DSP datapaths. Asynchronous reset.",
+        desc: "Loads a seed word, then shifts on each enable ÔÇö the pattern used by serializers with framing and by streaming DSP datapaths. Asynchronous reset.",
         diagram: { inputs: ["D", "SI"], enable: true, reset: "async", caption: "Shift register with load + enable" },
         code: `-- Seed load + enable-gated shift (async reset)
 signal q : std_logic_vector(N-1 downto 0);
@@ -1343,7 +1328,7 @@ begin
 end process;`
     },
 
-    /* ── Feedback ─────────────────────────────────── */
+/* ÔöÇÔöÇ Feedback ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Ring Counter",
@@ -1386,12 +1371,12 @@ begin
 end process;`
     },
     {
-        title: "LFSR — Fibonacci (Maximal Length)",
+        title: "LFSR ÔÇö Fibonacci (Maximal Length)",
         group: "Feedback",
-        desc: "PRBS generator using external-XOR feedback with the maximal-length polynomial x^16 + x^14 + x^13 + x^11 + 1 (period 2^16 − 1). The all-zero state is a lock-up and must be avoided.",
+        desc: "PRBS generator using external-XOR feedback with the maximal-length polynomial x^16 + x^14 + x^13 + x^11 + 1 (period 2^16 ÔêÆ 1). The all-zero state is a lock-up and must be avoided.",
         diagram: { inputs: [], reset: "sync", caption: "16-bit LFSR (Fibonacci)" },
         code: `-- 16-bit maximal-length LFSR (Fibonacci / many-to-one)
--- polynomial x^16 + x^14 + x^13 + x^11 + 1 → period 2^16 - 1
+-- polynomial x^16 + x^14 + x^13 + x^11 + 1 ÔåÆ period 2^16 - 1
 -- WARNING: the all-zero state locks up; seed must be non-zero.
 signal qr : std_logic_vector(15 downto 0);
 signal fb : std_logic;
@@ -1402,7 +1387,9 @@ process(clk)
 begin
     if rising_edge(clk) then
         if rst = '1' then
-            qr <= (0 => '1', others => '0');   -- non-zero seed (all-zero locks up)
+            qr <= (0 => '1', others => '0');
+        elsif load = '1' then
+            qr <= seed;                      -- user seed (non-zero)
         else
             qr <= fb & qr(15 downto 1);      -- feedback into MSB
         end if;
@@ -1410,7 +1397,7 @@ begin
 end process;`
     },
     {
-        title: "LFSR — Galois (Internal XOR)",
+        title: "LFSR ÔÇö Galois (Internal XOR)",
         group: "Feedback",
         desc: "Same maximal-length polynomial in Galois (one-to-many) form: fewer XOR paths, faster in hardware. Requires VHDL-2008 for the array xor.",
         diagram: { inputs: [], reset: "sync", caption: "16-bit LFSR (Galois)" },
@@ -1436,7 +1423,7 @@ begin
 end process;`
     },
 
-    /* ── Special ──────────────────────────────────── */
+    /* ÔöÇÔöÇ Special ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Variable-Length Delay Line",
@@ -1461,7 +1448,7 @@ end process;
 dout <= qr(to_integer(unsigned(sel)));`
     },
     {
-        title: "Rotate Right — One Position per Clock",
+        title: "Rotate Right ÔÇö One Position per Clock",
         group: "Special",
         desc: "Cyclic rotation with a clock enable: the LSB wraps into the MSB each cycle, useful for drum-style stepping and bit-serial addressing.",
         diagram: { inputs: [], enable: true, reset: "sync", caption: "Rotate right with enable" },
@@ -1484,7 +1471,7 @@ end process;`
 
 counter: [
 
-    /* ── Basic Counters ──────────────────────────── */
+    /* ÔöÇÔöÇ Basic Counters ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Free-Running Up Counter",
@@ -1553,7 +1540,7 @@ end process;
 q <= std_logic_vector(cnt);`
     },
 
-    /* ── Up/Down ──────────────────────────────────── */
+    /* ÔöÇÔöÇ Up/Down ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Up/Down Counter",
@@ -1582,7 +1569,7 @@ q <= std_logic_vector(cnt);`
     {
         title: "Up/Down Counter with Load + Enable",
         group: "Up/Down",
-        desc: "Adds a parallel load and clock enable to the up/down counter — the pattern used by address generators and PWM duty-cycle counters. Requires ieee.numeric_std.all.",
+        desc: "Adds a parallel load and clock enable to the up/down counter ÔÇö the pattern used by address generators and PWM duty-cycle counters. Requires ieee.numeric_std.all.",
         diagram: { inputs: ["D", "DIR"], enable: true, reset: "sync", caption: "Up/down counter with load + enable" },
         code: `-- N-bit up/down counter with parallel load and clock enable
 -- load takes priority over count; dir selects direction while en = '1'
@@ -1610,7 +1597,7 @@ q <= std_logic_vector(cnt);`
     {
         title: "Saturating Up/Down Counter",
         group: "Up/Down",
-        desc: "Counts up or down but clamps at the limits instead of wrapping — holds at all-ones (max) and at zero (min). Requires ieee.numeric_std.all.",
+        desc: "Counts up or down but clamps at the limits instead of wrapping ÔÇö holds at all-ones (max) and at zero (min). Requires ieee.numeric_std.all.",
         diagram: { inputs: ["DIR"], enable: true, reset: "sync", caption: "Saturating up/down counter" },
         code: `-- N-bit saturating up/down counter (clamps, never wraps)
 -- dir : '1' = up, '0' = down; holds at max / min at the limits
@@ -1639,12 +1626,12 @@ end process;
 q <= std_logic_vector(cnt);`
     },
 
-    /* ── Timers ───────────────────────────────────── */
+    /* ÔöÇÔöÇ Timers ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "One-Shot Countdown Timer",
         group: "Timers",
-        desc: "Loads a count value on start and counts down to zero, asserting done for one clock — the pattern used for retry/timeout delays. Requires ieee.numeric_std.all.",
+        desc: "Loads a count value on start and counts down to zero, asserting done for one clock ÔÇö the pattern used for retry/timeout delays. Requires ieee.numeric_std.all.",
         diagram: { inputs: ["D", "START"], out: "DONE", reset: "sync", caption: "One-shot countdown timer" },
         code: `-- Loads d on start, counts down to zero, pulses done for 1 cycle
 signal cnt  : unsigned(N-1 downto 0);
@@ -1674,7 +1661,7 @@ done <= '1' when (busy = '1' and cnt = 0) else '0';`
     {
         title: "Free-Running Tick Generator",
         group: "Timers",
-        desc: "Counts up to a fixed TIMEOUT value then pulses tick for one clock and restarts — used to derive slower periodic events (e.g. a 1 ms heartbeat) from a fast system clock. Requires ieee.numeric_std.all.",
+        desc: "Counts up to a fixed TIMEOUT value then pulses tick for one clock and restarts ÔÇö used to derive slower periodic events (e.g. a 1 ms heartbeat) from a fast system clock. Requires ieee.numeric_std.all.",
         diagram: { inputs: [], out: "TICK", reset: "sync", caption: "Free-running tick generator" },
         code: `-- Pulses tick for one clock every TIMEOUT cycles
 signal cnt : unsigned(N-1 downto 0);
@@ -1695,12 +1682,12 @@ end process;
 tick <= '1' when cnt = TIMEOUT - 1 else '0';`
     },
 
-    /* ── Encoded ─────────────────────────────────── */
+    /* ÔöÇÔöÇ Encoded ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Gray-Code Counter",
         group: "Encoded",
-        desc: "Counts so that exactly one output bit changes per step — the safe encoding for crossing a counter value between clock domains (e.g. async-FIFO pointers). Requires ieee.numeric_std.all.",
+        desc: "Counts so that exactly one output bit changes per step ÔÇö the safe encoding for crossing a counter value between clock domains (e.g. async-FIFO pointers). Requires ieee.numeric_std.all.",
         diagram: { inputs: [], out: "GRAY", reset: "sync", caption: "Gray-code counter" },
         code: `-- N-bit Gray-code counter: keep a binary counter, convert to Gray
 -- g = b xor (b >> 1)  ->  only one bit changes between consecutive values
@@ -1720,9 +1707,9 @@ end process;
 gray <= std_logic_vector(bin xor shift_right(bin, 1));`
     },
     {
-        title: "BCD Counter — Cascaded Decades",
+        title: "BCD Counter ÔÇö Cascaded Decades",
         group: "Encoded",
-        desc: "Two-digit binary-coded-decimal counter (00..99): each 4-bit digit counts 0..9 and ripples a carry to the next — chain more digits the same way. Requires ieee.numeric_std.all.",
+        desc: "Two-digit binary-coded-decimal counter (00..99): each 4-bit digit counts 0..9 and ripples a carry to the next ÔÇö chain more digits the same way. Requires ieee.numeric_std.all.",
         diagram: { inputs: [], enable: true, out: "BCD", reset: "sync", caption: "Two-digit BCD counter (00..99)" },
         code: `-- Two-digit BCD counter: ones and tens each count 0..9
 -- carry chains from ones -> tens (add more digits the same way)
@@ -1757,12 +1744,12 @@ bcd <= std_logic_vector(tens) & std_logic_vector(ones);`
 
 fsm: [
 
-    /* ── Moore ──────────────────────────────────── */
+    /* ÔöÇÔöÇ Moore ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
-        title: "Moore FSM — Two-Process",
+        title: "Moore FSM ÔÇö Two-Process",
         group: "Moore",
-        desc: "Canonical two-process Moore machine: a clocked state register plus combinational next-state and output logic. Outputs depend on the current state only — swap in your own states, transitions and outputs.",
+        desc: "Canonical two-process Moore machine: a clocked state register plus combinational next-state and output logic. Outputs depend on the current state only ÔÇö swap in your own states, transitions and outputs.",
         diagram: { fsm: "moore", caption: "Moore FSM (two-process)" },
         code: `-- Two-process Moore FSM: state register + combinational next-state/output.
 -- Outputs depend on the CURRENT STATE only.
@@ -1795,10 +1782,10 @@ begin
 end process;`
     },
 
-    /* ── Mealy ──────────────────────────────────── */
+    /* ÔöÇÔöÇ Mealy ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
-        title: "Mealy FSM — Two-Process",
+        title: "Mealy FSM ÔÇö Two-Process",
         group: "Mealy",
         desc: "Two-process Mealy machine: outputs depend on the state AND the current inputs, so they react a cycle earlier and often need fewer states than Moore. Assign outputs inside the input branches.",
         diagram: { fsm: "mealy", caption: "Mealy FSM (two-process)" },
@@ -1837,10 +1824,10 @@ begin
 end process;`
     },
 
-    /* ── Coding Styles ────────────────────────── */
+    /* ÔöÇÔöÇ Coding Styles ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
-        title: "Moore FSM — Registered Outputs",
+        title: "Moore FSM ÔÇö Registered Outputs",
         group: "Coding Styles",
         desc: "Three-process Moore machine whose outputs are registered for glitch-free timing. Decoding them from the next state keeps them aligned with the state (no extra latency).",
         diagram: { fsm: "moore", caption: "Moore FSM (registered outputs)" },
@@ -1889,7 +1876,7 @@ begin
 end process;`
     },
     {
-        title: "Safe FSM — Illegal-State Recovery",
+        title: "Safe FSM ÔÇö Illegal-State Recovery",
         group: "Coding Styles",
         desc: "Encodes the states explicitly so unused codes are representable, then uses when others to force recovery to IDLE if the machine ever lands in an illegal state (glitch or SEU).",
         diagram: { fsm: "moore", caption: "Safe FSM (illegal-state recovery)" },
@@ -1932,7 +1919,7 @@ begin
 end process;`
     },
     {
-        title: "State Encoding — One-Hot / Binary / Gray",
+        title: "State Encoding ÔÇö One-Hot / Binary / Gray",
         group: "Coding Styles",
         desc: "Keep the readable enumerated state type but pin the synthesis encoding with a vendor attribute instead of relying on the tool default (often one-hot on FPGAs).",
         diagram: null,
@@ -1954,15 +1941,15 @@ attribute syn_encoding of state_t : type is "onehot";   -- "sequential" | "gray"
 
 memory: [
 
-    /* ── RAM ──────────────────────────────────── */
+    /* ÔöÇÔöÇ RAM ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Single-Port RAM",
         group: "RAM",
-        desc: "One shared read/write port with a registered read — the canonical pattern that infers a block RAM. A write returns the old contents on the same address this cycle (read-first). Requires ieee.numeric_std.all.",
+        desc: "One shared read/write port with a registered read ÔÇö the canonical pattern that infers a block RAM. A write returns the old contents on the same address this cycle (read-first). Requires ieee.numeric_std.all.",
         diagram: { inputs: ["ADDR", "DIN", "WE"], out: "DOUT", caption: "Single-port RAM (registered read)" },
         code: `-- Single-port RAM (registered read -> infers block RAM)
--- WIDTH data bits, DEPTH words; addr must be ceil(log2(DEPTH)) bits wide
+-- WIDTH data bits, DEPTH words, addr is ADDR_W = ceil(log2(DEPTH)) bits
 type ram_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
 signal ram : ram_t;
 
@@ -1979,7 +1966,7 @@ end process;`
     {
         title: "Simple Dual-Port RAM",
         group: "RAM",
-        desc: "One write port and one independent read port, each free to use its own clock — the memory behind FIFOs and clock-domain-crossing buffers. Requires ieee.numeric_std.all.",
+        desc: "One write port and one independent read port, each free to use its own clock ÔÇö the memory behind FIFOs and clock-domain-crossing buffers. Requires ieee.numeric_std.all.",
         diagram: { inputs: ["WADDR", "RADDR", "DIN", "WE"], out: "DOUT", caption: "Simple dual-port RAM (1 write, 1 read)" },
         code: `-- Simple dual-port RAM: separate write and read ports (own clocks allowed)
 -- tie wr_clk = rd_clk for a single-clock buffer
@@ -2036,10 +2023,10 @@ begin
 end process;`
     },
 
-    /* ── ROM ──────────────────────────────────── */
+    /* ÔöÇÔöÇ ROM ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
-        title: "ROM — Inline Initialization",
+        title: "ROM ÔÇö Inline Initialization",
         group: "ROM",
         desc: "Read-only memory initialized from a constant array; a registered read infers a block ROM. Swap the constant for an impure function reading a file to load contents externally. Requires ieee.numeric_std.all.",
         diagram: { inputs: ["ADDR"], out: "DOUT", caption: "Synchronous ROM" },
@@ -2057,7 +2044,7 @@ begin
 end process;`
     },
 
-    /* ── FIFO ────────────────────────────────── */
+    /* ÔöÇÔöÇ FIFO ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Synchronous FIFO",
@@ -2100,14 +2087,12 @@ begin
 end process;`
     },
     {
-        title: "Asynchronous FIFO — Dual-Clock",
+        title: "Asynchronous FIFO ÔÇö Dual-Clock",
         group: "FIFO",
         desc: "Dual-clock FIFO for crossing clock domains: Gray-code read/write pointers are passed through 2-FF synchronizers so full and empty stay safe across the wr_clk and rd_clk domains. DEPTH = 2**ADDR_W. Requires ieee.numeric_std.all.",
         diagram: { clk: "none", inputs: ["wr_clk", "din", "wr", "rd_clk", "rd"], out: "dout", buses: ["din", "dout"], caption: "Async FIFO (two clocks)" },
         code: `-- Asynchronous (dual-clock) FIFO: Gray-code pointers + 2-FF synchronizers.
 -- Independent wr_clk / rd_clk domains; DEPTH = 2**ADDR_W words.
--- No reset: the pointers rely on the initial values below (fine on FPGAs);
--- use a synchronized reset in both domains where power-up state is not guaranteed.
 type mem_t is array (0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
 signal mem : mem_t;
 
@@ -2157,7 +2142,7 @@ full  <= '1' when wgry = ((not rgry_w2(ADDR_W downto ADDR_W-1))
 
 utilities: [
 
-    /* ── Debouncer ──────────────────────── */
+    /* ÔöÇÔöÇ Debouncer ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Counter-Based Debouncer",
@@ -2165,8 +2150,8 @@ utilities: [
         desc: "Accepts a new button level only after it stays stable for STABLE clocks; includes a 2-FF synchronizer since buttons are asynchronous. Requires ieee.numeric_std.all.",
         diagram: { bit: true, inputs: ["btn"], out: "debounced", caption: "Counter-based debouncer" },
         code: `-- Counter-based debouncer: output flips after STABLE stable clocks
-signal sync  : std_logic_vector(1 downto 0) := (others => '0');   -- 2-FF synchronizer
-signal cnt   : unsigned(N-1 downto 0) := (others => '0');
+signal sync  : std_logic_vector(1 downto 0);   -- 2-FF synchronizer
+signal cnt   : unsigned(N-1 downto 0);
 signal level : std_logic := '0';
 
 process(clk)
@@ -2193,32 +2178,32 @@ debounced <= level;`
         desc: "Flips the output only after K consecutive identical synchronized samples; simpler than a full counter for slow inputs.",
         diagram: { bit: true, inputs: ["btn"], out: "debounced", caption: "Sampling debouncer" },
         code: `-- Sampling debouncer: K identical samples in a row flip the output
-signal sync : std_logic_vector(1 downto 0) := (others => '0');     -- 2-FF synchronizer
-signal shr  : std_logic_vector(K-1 downto 0) := (others => '0');   -- last K samples
+signal sync : std_logic_vector(1 downto 0);     -- 2-FF synchronizer
+signal shr  : std_logic_vector(K-1 downto 0);   -- last K samples
 
 process(clk)
 begin
     if rising_edge(clk) then
         sync <= sync(0) & btn;
         shr  <= shr(K-2 downto 0) & sync(1);
-        if    shr = (others => '1') then
+        if    shr = (shr'range => '1') then
             debounced <= '1';
-        elsif shr = (others => '0') then
+        elsif shr = (shr'range => '0') then
             debounced <= '0';
         end if;
     end if;
 end process;`
     },
 
-    /* ── Synchronizer ──────────────────── */
+    /* ÔöÇÔöÇ Synchronizer ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Two-FF Synchronizer",
         group: "Synchronizer",
         desc: "The standard double-flop that brings a single-bit asynchronous signal into the clk domain. Constrain these registers (ASYNC_REG / false path) in your tool.",
-        diagram: { bit: true, inputs: ["async_in"], out: "sync_out", caption: "Two-FF synchronizer" },
+        diagram: { bit: true, inputs: ["async"], out: "sync", caption: "Two-FF synchronizer" },
         code: `-- Two-flip-flop synchronizer (single-bit level crossing into clk's domain)
-signal sync : std_logic_vector(1 downto 0) := (others => '0');
+signal sync : std_logic_vector(1 downto 0);
 
 process(clk)
 begin
@@ -2233,10 +2218,10 @@ sync_out <= sync(1);`
         title: "Pulse Synchronizer",
         group: "Synchronizer",
         desc: "Carries a single-cycle pulse from one clock domain to another by toggling a flag, synchronizing it, and detecting the edge. Space input pulses far enough apart for the destination to catch each toggle.",
-        diagram: { bit: true, inputs: ["pulse_in"], out: "pulse_out", caption: "Pulse synchronizer" },
+        diagram: { bit: true, inputs: ["p_in"], out: "p_out", caption: "Pulse synchronizer" },
         code: `-- Pulse synchronizer: 1-cycle pulse from clk_src domain to clk_dst domain
 signal tog  : std_logic := '0';
-signal sync : std_logic_vector(2 downto 0) := (others => '0');
+signal sync : std_logic_vector(2 downto 0);
 
 process(clk_src)                       -- source: toggle once per input pulse
 begin
@@ -2260,7 +2245,7 @@ pulse_out <= sync(2) xor sync(1);      -- one dst-clock pulse per toggle`
         title: "Reset Synchronizer",
         group: "Synchronizer",
         desc: "Asserts reset asynchronously but releases it synchronously, so logic leaves reset cleanly without metastability. Active-low convention.",
-        diagram: { bit: true, inputs: ["arst_n"], out: "rst_sync_n", caption: "Reset synchronizer" },
+        diagram: { bit: true, inputs: ["arst_n"], out: "rst_n", caption: "Reset synchronizer" },
         code: `-- Reset synchronizer: async assert, sync deassert (active-low)
 signal sync : std_logic_vector(1 downto 0);
 
@@ -2276,7 +2261,7 @@ end process;
 rst_sync_n <= sync(1);`
     },
 
-    /* ── Edge Detector ────────────────── */
+    /* ÔöÇÔöÇ Edge Detector ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Rising-Edge Detector",
@@ -2284,7 +2269,7 @@ rst_sync_n <= sync(1);`
         desc: "Emits a one-clock pulse on a 0 -> 1 transition. Synchronize d first if it comes from another clock domain.",
         diagram: { bit: true, inputs: ["d"], out: "rise", caption: "Rising-edge detector" },
         code: `-- Rising-edge detector: 1-cycle pulse on 0 -> 1
-signal d_r : std_logic := '0';
+signal d_r : std_logic;
 
 process(clk)
 begin
@@ -2301,7 +2286,7 @@ rise <= d and not d_r;`
         desc: "Emits a one-clock pulse on a 1 -> 0 transition.",
         diagram: { bit: true, inputs: ["d"], out: "fall", caption: "Falling-edge detector" },
         code: `-- Falling-edge detector: 1-cycle pulse on 1 -> 0
-signal d_r : std_logic := '0';
+signal d_r : std_logic;
 
 process(clk)
 begin
@@ -2318,7 +2303,7 @@ fall <= (not d) and d_r;`
         desc: "Emits a one-clock pulse on either transition of d.",
         diagram: { bit: true, inputs: ["d"], out: "edge", caption: "Any-edge detector" },
         code: `-- Any-edge detector: 1-cycle pulse on any change
-signal d_r : std_logic := '0';
+signal d_r : std_logic;
 
 process(clk)
 begin
@@ -2330,13 +2315,13 @@ end process;
 edge <= d xor d_r;`
     },
 
-    /* ── Clock Divider ────────────────── */
+    /* ÔöÇÔöÇ Clock Divider ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Divide-by-2",
         group: "Clock Divider",
         desc: "Toggle flip-flop giving an exact 50% duty clock at half the frequency. On FPGAs prefer a clock enable or a PLL/MMCM over a fabric-divided clock.",
-        diagram: { bit: true, inputs: [], out: "clk_div2", caption: "Divide-by-2" },
+        diagram: { bit: true, inputs: [], out: "clk_d2", caption: "Divide-by-2" },
         code: `-- Divide-by-2 clock (toggle FF, 50% duty)
 signal q : std_logic := '0';
 
@@ -2353,7 +2338,7 @@ clk_div2 <= q;`
         title: "Divide-by-N (Even)",
         group: "Clock Divider",
         desc: "Counter that toggles the output every DIV/2 clocks, giving a 50% duty clock for even DIV. Requires ieee.numeric_std.all.",
-        diagram: { bit: true, inputs: [], out: "clk_div", caption: "Divide-by-N" },
+        diagram: { bit: true, inputs: [], out: "clk_dN", caption: "Divide-by-N" },
         code: `-- Divide-by-N clock, even DIV -> 50% duty
 signal cnt : unsigned(N-1 downto 0) := (others => '0');
 signal q   : std_logic := '0';
@@ -2375,7 +2360,7 @@ clk_div <= q;`
     {
         title: "Clock-Enable Generator",
         group: "Clock Divider",
-        desc: "One-cycle strobe every DIV clocks for any DIV — the FPGA-preferred alternative to a divided clock: run everything on clk and gate with tick. Same idea as the tick generator in Counters. Requires ieee.numeric_std.all.",
+        desc: "One-cycle strobe every DIV clocks for any DIV ÔÇö the FPGA-preferred alternative to a divided clock: run everything on clk and gate with tick. Same idea as the tick generator in Counters. Requires ieee.numeric_std.all.",
         diagram: { bit: true, inputs: [], out: "tick", caption: "Clock-enable generator" },
         code: `-- Clock-enable / slow-strobe: tick high 1 cycle every DIV clocks
 signal cnt : unsigned(N-1 downto 0) := (others => '0');
@@ -2398,7 +2383,7 @@ end process;`
 
 verification: [
 
-    /* ── Testbench ──────────────────────── */
+    /* ÔöÇÔöÇ Testbench ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Testbench Skeleton",
@@ -2431,8 +2416,7 @@ begin
         rst <= '0';                        -- release reset
 
         d <= x"A5";
-        wait until rising_edge(clk);       -- DUT captures d on this edge
-        wait until falling_edge(clk);      -- q settles 1 delta after the edge:
+        wait until rising_edge(clk);
         assert q = x"A5" report "unexpected q" severity error;
 
         wait;                              -- end of test
@@ -2440,7 +2424,7 @@ begin
 end architecture;`
     },
 
-    /* ── Clock & Reset ────────────────── */
+    /* ÔöÇÔöÇ Clock & Reset ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Clock Generator",
@@ -2480,7 +2464,7 @@ begin
 end process;`
     },
 
-    /* ── Stimulus & Checking ───────────── */
+    /* ÔöÇÔöÇ Stimulus & Checking ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Stimulus Process",
@@ -2521,7 +2505,7 @@ assert q = expected
 
 structural: [
 
-    /* ── Component Instantiation ─────────────────────── */
+    /* ÔöÇÔöÇ Component Instantiation ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
     {
         title: "Component Declaration + Instantiation",
@@ -2541,8 +2525,8 @@ architecture rtl of top is
         port (
             clk : in  std_logic;
             rst : in  std_logic;
-            d   : in  std_logic_vector(WIDTH-1 downto 0);
-            q   : out std_logic_vector(WIDTH-1 downto 0)
+            d   : in  std_logic_vector(WIDTH - 1 downto 0);
+            q   : out std_logic_vector(WIDTH - 1 downto 0)
         );
     end component;
 
@@ -2598,12 +2582,10 @@ end architecture rtl;`
         group: "Component Instantiation",
         desc: "Instantiate N identical sub-modules with a for ... generate loop - ideal for the lanes of a bus, pipeline stages, or processing-element arrays.",
         code: `-- Instantiate N copies of a sub-module with a for ... generate loop.
--- Here my_cell has 1-bit d/q ports; with vector ports, map bus slices instead:
---   d => d_i((i+1)*W-1 downto i*W)
 architecture rtl of top is
     constant N : natural := 4;
-    signal d_i : std_logic_vector(N-1 downto 0);
-    signal q_i : std_logic_vector(N-1 downto 0);
+    signal d_i : std_logic_vector(N - 1 downto 0);
+    signal q_i : std_logic_vector(N - 1 downto 0);
 begin
 
     gen_cells : for i in 0 to N - 1 generate
@@ -2671,7 +2653,7 @@ function buildCategory(container, tg, nested)
     header.className =
         "template-group-header collapsed" + (nested ? " nested" : "");
     header.innerHTML =
-        `<span>${tg.name}</span><span class="caret">▾</span>`;
+        `<span>${tg.name}</span><span class="caret">Ôû¥</span>`;
     container.appendChild(header);
 
     const sub = document.createElement("div");
@@ -3017,17 +2999,12 @@ function createDiagram(d)
                 + `fill="${note}" font-family="Arial">${reset.note}</text>`);
     }
 
-    // Widen the viewBox to the left so long input labels are not clipped
-    // (labels are right-aligned at x = 49; ~8 px per character at font-size 13).
-    const maxInLen = Math.max(...inputs.map(s => s.length), 1);
-    const vbLeft = Math.min(0, 49 - maxInLen * 8 - 4);
-
     const vbWidth = Math.max(300, 271 + Math.max(...outputs.map(o => o.length), 1) * 8 + 12);
 
     const wrap = document.createElement("div");
     wrap.className = "diagram";
     wrap.innerHTML =
-        `<svg viewBox="${vbLeft} ${yTop} ${vbWidth - vbLeft} ${yBottom - yTop}" xmlns="http://www.w3.org/2000/svg" `
+        `<svg viewBox="0 ${yTop} ${vbWidth} ${yBottom - yTop}" xmlns="http://www.w3.org/2000/svg" `
         + `role="img" aria-label="${d.caption || "Schematic"} diagram">`
         + svg.join("")
         + `</svg>`;
@@ -3073,7 +3050,7 @@ function createBlock(title, desc, code, diagram)
 
     const btn = document.createElement("button");
     btn.className = "copyBtn";
-    btn.innerHTML = "📋 Copy";
+    btn.innerHTML = "­ƒôï Copy";
     btn.onclick = () => copyBlock(btn);
     codeCol.appendChild(btn);
 
@@ -3098,14 +3075,14 @@ function copyBlock(btn)
         document.getElementById("toast");
 
     btn.classList.add("copied");
-    btn.innerHTML = "✅ Copied!";
+    btn.innerHTML = "Ô£à Copied!";
 
     toast.classList.add("show");
 
     setTimeout(() =>
     {
         btn.classList.remove("copied");
-        btn.innerHTML = "📋 Copy";
+        btn.innerHTML = "­ƒôï Copy";
 
         toast.classList.remove("show");
     }, 2000);

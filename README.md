@@ -30,15 +30,17 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - Decoder (3:8), priority encoder, one-hot → binary
 - Comparators (equality, magnitude)
 - Parity, Gray ↔ binary, seven-segment decoder
+- Barrel shifter, arithmetic shift right
 
 ### Arithmetic
 - Adder / subtractor (carry & borrow), adder-subtractor
 - Combinational & pipelined multiplier, MAC
+- Divide by 2^K (shift), sequential restoring divider
 - Accumulator, saturating adder, absolute value
 
 ### Sequential Logic
-- Register (D, set/preset, latches, T/JK/SR)
-- Shift Registers (SISO, SIPO, PISO, PIPO, universal, ring/Johnson, LFSR, barrel)
+- Registers (D, set/preset, latches, T/JK/SR, pipeline)
+- Shift Registers (SISO, SIPO, PISO, PIPO, universal, ring/Johnson, LFSR, delay line, rotate)
 - Counters (up, down, modulo-N, up/down, load/enable, saturating, Gray-code, BCD, one-shot timer, periodic tick)
 
 ### Finite State Machines
@@ -52,6 +54,7 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - RAM (single-port, simple & true dual-port)
 - ROM (inline initialization)
 - Synchronous FIFO
+- Asynchronous FIFO (dual-clock, Gray-coded pointers)
 
 ### Utilities
 - Debouncer (counter-based, sampling)

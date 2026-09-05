@@ -1,0 +1,25 @@
+﻿OLD titles=98 codes=98 backticks=346 braces=524/524
+NEW titles=98 codes=98 backticks=346 braces=525/525
+REMOVE [qr <= seed] => 0
+REMOVE [(shr'range =>] => 0
+REMOVE [clk_d2] => 0
+REMOVE [clk_dN] => 0
+REMOVE [out: "rst_n"] => 0
+REMOVE [inputs: ["async"],] => 0
+REMOVE [inputs: ["p_in"]] => 0
+REMOVE [WIDTH - 1 downto 0] => 0
+REMOVE [N - 1 downto 0] => 0
+REMOVE [signal d_r : std_logic;] => 0
+REMOVE [clk : in std_logic;] => 0
+REMOVE [ADDR_W = ceil] => 0
+ADD [inputs: ["async_in"], out: "sync_out"] => 1
+ADD [inputs: ["pulse_in"], out: "pulse_out"] => 1
+ADD [out: "rst_sync_n"] => 1
+ADD [out: "clk_div2"] => 1
+ADD [out: "clk_div"] => 1
+ADD [inputs: ["data_out", "oe"]] => 1
+ADD [wait until falling_edge(clk);      -- q settles] => 1
+ADD [const vbLeft = Math.min(0, 49 - maxInLen * 8 - 4);] => 1
+ADD [signal cnt   : unsigned(N-1 downto 0) := (others => '0');] => 1
+ADD [-- non-zero seed (all-zero locks up)] => 1
+ADD [-- Here my_cell has 1-bit d/q ports] => 1

@@ -3172,6 +3172,7 @@ function filterTemplates()
 
 buildSidebar();
 loadProject(document.querySelector(".template-item"));
+try { let n = 0; collectItems(templateGroups).forEach(function(it){ if (it.diagram) { createDiagram(it.diagram); n++; } }); var pd = document.createElement("div"); pd.id = "probe"; pd.textContent = "DIAGRAMS_OK_" + n; document.body.appendChild(pd); } catch (e) { var pd2 = document.createElement("div"); pd2.id = "probe"; pd2.textContent = "DIAGRAMS_ERR_" + e.message; document.body.appendChild(pd2); }
 
 </script>
 

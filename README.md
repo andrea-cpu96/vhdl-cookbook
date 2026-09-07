@@ -61,11 +61,19 @@ The application provides a searchable collection of ready-to-use VHDL templates 
 - Synchronizer (2-FF, pulse, reset)
 - Edge detector (rising, falling, any)
 - Clock divider (÷2, ÷N, clock-enable)
+- Baud rate generator (enable-gated tick, phase preload)
 
 ### Verification
 - Testbench skeleton
 - Clock & reset generators
 - Stimulus process, self-checking assertions
+
+### Best Practices
+- Registered inputs & outputs (drive module outputs from flip-flops)
+- Metastability & synchronization (2-FF synchronizer, CDC rules)
+- Avoiding unintended latches (default assignments, complete case)
+- FSM coding style (two-process Moore, default `nstate`)
+- Clock & reset strategy (sync vs async reset, reset synchronizer)
 
 ## Planned Templates
 

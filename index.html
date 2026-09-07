@@ -2428,6 +2428,37 @@ begin
         end if;
     end if;
 end process;`
+    },
+    {
+        title: "Baud Rate Generator (enable + phase preload)",
+        group: "Baud Rate Generator",
+        desc: "Protocol clock for a serializer/deserializer (UART, SPI, I2C...): emit one tick every DIVIDER cycles. Unlike the free-running clock-enable: (1) enable-gated - the counter holds a phase preload while idle, so the tick phase can be re-armed on a protocol event (e.g. a UART detected start edge); (2) the tick is a COMBINATIONAL decode of the terminal count - a registered tick (as in the Clock-Enable template) lands one clock later and would stretch a UART start bit to DIVIDER+1 clocks (framing error). PHASE_OFFSET shifts the first tick: 0 for TX, DIVIDER/2 for mid-bit RX sampling.",
+        code: `-- Baud rate generator: one tick per DIVIDER clocks, enable-gated tick.
+-- Tick is COMBINATIONAL on the terminal count (gate with enable), NOT a
+-- registered tick: a registered tick adds one clock of latency and would
+-- stretch a UART start bit to DIVIDER+1 clocks (framing error).
+constant C_DIVIDER : natural := G_CLK_FREQ / G_BAUD;
+constant C_PHASE   : natural := 0;          -- TX: 0      RX: DIVIDER/2
+
+signal counter : natural range 0 to C_DIVIDER - 1 := 0;
+signal baud_tick : std_logic;
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst_n = '0' then
+            counter <= 0;
+        elsif enable = '0' then
+            counter <= C_PHASE;           -- hold the phase while idle
+        elsif counter = C_DIVIDER - 1 then
+            counter <= 0;
+        else
+            counter <= counter + 1;
+        end if;
+    end if;
+end process;
+
+baud_tick <= '1' when enable = '1' and counter = C_DIVIDER - 1 else '0';`
     }
 
 ],
@@ -2655,6 +2686,177 @@ end architecture rtl;`
     }
 
 ]
+
+bestpractice: [
+
+    /* ── Registered Inputs & Outputs ─────────────────── */
+
+    {
+        title: "Drive module outputs from flip-flops",
+        group: "Registered Inputs & Outputs",
+        desc: "Drive every module output from a flip-flop, not from combinational decode. A registered output is glitch-free at the boundary (important for pins), gives cleaner timing closure, and packs into the FPGA's I/O register. Reset the output register to the interface's safe idle level. Internal enables consumed only by same-clock flip-flops may stay combinational - their sub-cycle glitches are never sampled.",
+        code: `-- BAD: combinational decode drives the port directly.
+-- A glitch on the decode (or a decode hazard) reaches the module pin.
+process(state)
+begin
+    data_out <= '1';             -- default (idle high)
+    if state = DATA_BITS then
+        data_out <= data_out_b;
+    end if;
+end process;
+
+-- GOOD: register the output mux, drive the port from the flip-flop.
+-- The whole frame is delayed one clock, bit widths unchanged, pin glitch-free.
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst_n = '0' then
+            data_out_r <= '1';   -- safe idle level
+        else
+            case state is
+                when IDLE      => data_out_r <= '1';
+                when START_BIT => data_out_r <= '0';
+                when DATA_BITS => data_out_r <= data_out_b;
+                when STOP_BIT  => data_out_r <= '1';
+            end case;
+        end if;
+    end if;
+end process;
+data_out <= data_out_r;          -- single FF-driven driver for the port`
+    },
+
+    /* ── Metastability & Synchronization ────────────── */
+
+    {
+        title: "Synchronize asynchronous inputs (2-FF)",
+        group: "Metastability & Synchronization",
+        desc: "An input that can change near a clock edge (asynchronous pin, or any other clock domain) must be synchronized with at least two flip-flops. One stage is not enough: it can sample a metastable value. The second stage gives the first a full cycle to resolve, so downstream logic always sees a clean sample. Read the synchronized signal everywhere downstream - never the raw input. Costs 2-3 clock cycles of latency (absorb it in the protocol, e.g. a UART re-syncs on the start edge).",
+        code: `-- 2-FF input synchronizer - same pattern as Utilities > Synchronizer
+-- (Two-flip-flop synchronizer): a 2-bit shift register. The 1st FF may go
+-- metastable; the 2nd FF samples it one cycle later, fully settled.
+-- One FF is NOT enough - add the reset only if your interface needs it.
+signal sync : std_logic_vector(1 downto 0) := (others => '1');  -- idle high
+
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst_n = '0' then
+            sync <= (others => '1');      -- reset to the line idle level
+        else
+            sync <= sync(0) & async_in;   -- shift the async input in from the LSB
+        end if;
+    end if;
+end process;
+
+sync_out <= sync(1);   -- RULE: downstream logic reads sync_out and nothing else.`
+    },
+
+    /* ── Avoiding Unintended Latches ────────────────── */
+
+    {
+        title: "Complete combinational assignments (no latches)",
+        group: "Avoiding Unintended Latches",
+        desc: "A combinational process that leaves a signal unassigned on some path makes the synthesizer infer a latch (level-sensitive memory) instead of the flip-flop you intended. Fix it with a default assignment at the top of the process, complete if/else, and a when others in every case. Latches are level-sensitive and glitch-prone; flip-flops are edge-triggered and the basis of synchronous design. Also keep the sensitivity list complete (every read signal) - or use process(all) in VHDL-2008.",
+        code: `-- BAD: combinational process leaves y unassigned on some path -> LATCH.
+process(sel, a, b)
+begin
+    if sel = '1' then
+        y <= a;
+    -- no else: when sel = '0', y keeps its previous value -> latch inferred
+    end if;
+end process;
+
+-- GOOD: assign a default first, then override.
+process(sel, a, b)
+begin
+    y <= b;                        -- default
+    if sel = '1' then
+        y <= a;
+    end if;
+end process;
+
+-- Same rule for next-state logic:
+--   nstate <= state;              -- default: stay put (no latch)
+--   case state is ... end case;   -- always provide when others`
+    },
+
+    /* ── FSM Coding Style ───────────────────────────── */
+
+    {
+        title: "Two-process FSM with default nstate",
+        group: "FSM Coding Style",
+        desc: "Separate the state register (sequential process, sensitivity list = clk only) from the next-state/output logic (combinational process, full sensitivity list). A default nstate <= state prevents latches and means 'stay put'. Register the module outputs (three-process style) for glitch-free results. This is the FSM pattern the rest of the library builds on.",
+        code: `-- Two-process Moore FSM: state register (sequential) + next-state and
+-- output logic (combinational). Keeps timing clean and latches out.
+type state_t is (IDLE, RUN, DONE);
+signal state, nstate : state_t;
+
+-- 1) State register: sequential, sensitivity list = clk ONLY.
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst_n = '0' then
+            state <= IDLE;
+        else
+            state <= nstate;
+        end if;
+    end if;
+end process;
+
+-- 2) Next-state + Moore outputs: combinational, list ALL read signals.
+process(state, start, done)
+begin
+    nstate <= state;               -- default: stay put (no latch)
+    busy   <= '0';                 -- default outputs
+    case state is
+        when IDLE =>
+            if start = '1' then nstate <= RUN; end if;
+        when RUN =>
+            busy <= '1';
+            if done = '1' then nstate <= DONE; end if;
+        when DONE =>
+            busy <= '1';
+            nstate <= IDLE;
+    end case;
+end process;
+-- For a glitch-free module output, register busy (three-process style).`
+    },
+
+    /* ── Clock & Reset Strategy ─────────────────────── */
+
+    {
+        title: "Consistent clock & reset strategy",
+        group: "Clock & Reset Strategy",
+        desc: "Choose one reset flavor per module and apply it consistently - synchronous reset (inside rising_edge(clk)) or asynchronous reset (clk, rst_n in the sensitivity list, reset branch first). Reset every register to its interface's safe idle level. At the board level, feed the external rst_n pin through a reset synchronizer (async assert, sync deassert) so the whole design releases on one clock edge. Never generate or gate the clock.",
+        code: `-- Pick ONE reset flavor per module and be consistent.
+
+-- Synchronous reset (takes effect on the clock edge):
+process(clk)
+begin
+    if rising_edge(clk) then
+        if rst_n = '0' then
+            q <= (others => '0');
+        else
+            q <= d;
+        end if;
+    end if;
+end process;
+
+-- Asynchronous reset (takes effect immediately, outside the clock):
+process(clk, rst_n)
+begin
+    if rst_n = '0' then
+        q <= (others => '0');
+    elsif rising_edge(clk) then
+        q <= d;
+    end if;
+end process;
+
+-- Board level: release the external reset through a reset synchronizer
+-- (async assert, sync release) so the whole design frees on one edge.`
+    }
+
+];
 };
 
 const templateGroups = [
@@ -2672,7 +2874,8 @@ const templateGroups = [
     { name: "Arithmetic", array: templates.arithmetic },
     { name: "Memory", array: templates.memory },
     { name: "Utilities", array: templates.utilities },
-    { name: "Verification", array: templates.verification }
+    { name: "Verification", array: templates.verification },
+    { name: "Best Practices", array: templates.bestpractice }
 ];
 
 // Flattened list of every variant, used by the search filter.

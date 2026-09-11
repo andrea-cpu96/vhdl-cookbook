@@ -1,0 +1,4 @@
+[submodule "vhdl-cookbook"]
+	path = vhdl-cookbook
+	url = https://github.com/andrea-cpu96/vhdl-cookbook.git
+	branch = main
